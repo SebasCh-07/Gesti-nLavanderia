@@ -442,6 +442,7 @@ class Reception {
         this.selectedClient = null;
         this.scannedGarments = [];
         this.currentGuide = null;
+        this.hideActionButtons();
         Navigation.clearPageParams('reception');
     }
 
@@ -508,6 +509,7 @@ class Reception {
         this.selectedClient = null;
         this.currentStep = 1;
         this.scannedGarments = [];
+        this.hideActionButtons();
         this.refreshContent();
     }
 
@@ -661,12 +663,12 @@ class Reception {
         this.refreshGarmentsList();
         app.showSuccessMessage(`Prenda ${rfidCode} agregada correctamente`);
         
-        // Verificar si debe mostrar el botón de continuar
+        // Verificar si debe mostrar los botones de acción
         console.log('Después de agregar prenda - Paso actual:', this.currentStep);
         
-        // Crear botón flotante inmediatamente si hay prendas
+        // Mostrar botones de acción directamente si hay prendas
         if (this.scannedGarments.length > 0) {
-            this.createFloatingContinueButton();
+            this.showActionButtons();
         }
     }
 
@@ -693,9 +695,9 @@ class Reception {
         this.refreshGarmentsList();
         app.showSuccessMessage('5 prendas simuladas agregadas');
         
-        // Crear botón flotante inmediatamente si hay prendas
+        // Mostrar botones de acción directamente si hay prendas
         if (this.scannedGarments.length > 0) {
-            this.createFloatingContinueButton();
+            this.showActionButtons();
         }
     }
 
@@ -729,6 +731,11 @@ class Reception {
             this.scannedGarments.splice(index, 1);
             this.refreshGarmentsList();
             app.showSuccessMessage('Prenda eliminada de la lista');
+            
+            // Ocultar botones de acción si no hay prendas
+            if (this.scannedGarments.length === 0) {
+                this.hideActionButtons();
+            }
         }
     }
 
@@ -736,6 +743,7 @@ class Reception {
         if (confirm('¿Está seguro que desea eliminar todas las prendas escaneadas?')) {
             this.scannedGarments = [];
             this.refreshGarmentsList();
+            this.hideActionButtons();
             app.showSuccessMessage('Lista de prendas limpiada');
         }
     }
@@ -745,9 +753,9 @@ class Reception {
             console.log('Cambiando de paso', this.currentStep, 'a', this.currentStep + 1);
             this.currentStep++;
             
-            // Ocultar botón flotante cuando se va al paso 3
+            // Ocultar botones de acción cuando se va al paso 3
             if (this.currentStep === 3) {
-                this.hideFloatingContinueButton();
+                this.hideActionButtons();
             }
             
             this.refreshContent();
@@ -759,6 +767,10 @@ class Reception {
         if (this.currentStep > 1) {
             console.log('Retrocediendo de paso', this.currentStep, 'a', this.currentStep - 1);
             this.currentStep--;
+            
+            // Ocultar botones de acción al regresar
+            this.hideActionButtons();
+            
             this.refreshContent();
         }
     }
@@ -974,7 +986,7 @@ class Reception {
     static checkContinueButton() {
         console.log('checkContinueButton - Paso actual:', this.currentStep, 'Prendas:', this.scannedGarments.length);
         
-        // Verificar que el botón esté visible en cualquier paso si hay prendas
+        // Verificar que los botones de acción estén visibles si hay prendas
         if (this.scannedGarments.length > 0) {
             if (this.currentStep === 2) {
                 // Paso 2: Buscar el contenedor normal
@@ -988,19 +1000,19 @@ class Reception {
                         console.log('Botón de continuar actualizado correctamente en paso 2');
                     }
                 } else {
-                    console.log('Contenedor de acciones no encontrado en paso 2, creando botón flotante');
-                    this.createFloatingContinueButton();
+                    console.log('Contenedor de acciones no encontrado en paso 2, mostrando botones de acción');
+                    this.showActionButtons();
                 }
-                // Ocultar botón flotante en paso 2
-                this.hideFloatingContinueButton();
+                // Ocultar botones de acción en paso 2
+                this.hideActionButtons();
             } else if (this.currentStep === 1 && this.selectedClient) {
-                // Paso 1: Crear botón flotante
-                console.log('Paso 1 con prendas, creando botón flotante');
-                this.createFloatingContinueButton();
+                // Paso 1: Mostrar botones de acción
+                console.log('Paso 1 con prendas, mostrando botones de acción');
+                this.showActionButtons();
             }
         } else {
-            // No hay prendas, ocultar botón flotante
-            this.hideFloatingContinueButton();
+            // No hay prendas, ocultar botones de acción
+            this.hideActionButtons();
         }
     }
     
@@ -1027,26 +1039,16 @@ class Reception {
         `;
         floatingBtn.innerHTML = `✅ Continuar (${this.scannedGarments.length} prendas)`;
         floatingBtn.onclick = () => {
-            console.log('Botón flotante presionado');
+            console.log('Botón flotante presionado - Mostrando acciones');
             // Ocultar el botón flotante inmediatamente
             this.hideFloatingContinueButton();
             
-            // Mostrar mensaje de confirmación exitosa
-            const prendaText = this.scannedGarments.length === 1 ? 'prenda' : 'prendas';
-            app.showSuccessMessage(`¡Excelente! ${this.scannedGarments.length} ${prendaText} registrada${this.scannedGarments.length > 1 ? 's' : ''}. Continuando a confirmación...`);
+            // Mostrar los botones de acción en la misma pantalla
+            this.showActionButtons();
             
-            // Cambiar al paso 3 (confirmación) después de un breve delay
-            setTimeout(() => {
-                this.currentStep = 3;
-                this.refreshContent();
-                
-                // Mostrar mensaje adicional en la pantalla de confirmación
-                setTimeout(() => {
-                    app.showSuccessMessage('Revisa los detalles y confirma la recepción');
-                }, 500);
-                
-                console.log('Pasando a confirmación - Paso actual:', this.currentStep);
-            }, 1500);
+            // Mostrar mensaje de confirmación
+            const prendaText = this.scannedGarments.length === 1 ? 'prenda' : 'prendas';
+            app.showSuccessMessage(`¡Excelente! ${this.scannedGarments.length} ${prendaText} registrada${this.scannedGarments.length > 1 ? 's' : ''}. Selecciona una acción:`);
         };
         
         document.body.appendChild(floatingBtn);
@@ -1058,6 +1060,94 @@ class Reception {
         if (floatingBtn) {
             floatingBtn.remove();
             console.log('Botón flotante eliminado');
+        }
+    }
+
+    static showActionButtons() {
+        // Eliminar botones de acción existentes si los hay
+        this.hideActionButtons();
+        
+        // Crear contenedor de botones de acción
+        const actionContainer = document.createElement('div');
+        actionContainer.id = 'floating-action-buttons';
+        actionContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            animation: slideInUp 0.3s ease-out;
+        `;
+        
+        // Botón Limpiar Todo
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'btn btn-danger btn-lg';
+        clearBtn.style.cssText = `
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 16px;
+            padding: 15px 25px;
+            min-width: 200px;
+        `;
+        clearBtn.innerHTML = '🗑️ Limpiar Todo';
+        clearBtn.onclick = () => {
+            if (confirm('¿Está seguro que desea eliminar todas las prendas escaneadas?')) {
+                this.scannedGarments = [];
+                this.refreshGarmentsList();
+                this.hideActionButtons();
+                app.showSuccessMessage('Lista de prendas limpiada');
+            }
+        };
+        
+        // Botón Continuar
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'btn btn-success btn-lg';
+        continueBtn.style.cssText = `
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 16px;
+            padding: 15px 25px;
+            min-width: 200px;
+        `;
+        continueBtn.innerHTML = `✅ Continuar (${this.scannedGarments.length} prendas)`;
+        continueBtn.onclick = () => {
+            console.log('Botón continuar presionado - Cambiando a confirmación');
+            this.hideActionButtons();
+            
+            // Cambiar al paso 3 (confirmación)
+            this.currentStep = 3;
+            this.refreshContent();
+            
+            // Mostrar mensaje adicional en la pantalla de confirmación
+            setTimeout(() => {
+                app.showSuccessMessage('Revisa los detalles y confirma la recepción');
+            }, 500);
+            
+            console.log('Pasando a confirmación - Paso actual:', this.currentStep);
+        };
+        
+        // Agregar botones al contenedor
+        actionContainer.appendChild(clearBtn);
+        actionContainer.appendChild(continueBtn);
+        
+        // Agregar al DOM
+        document.body.appendChild(actionContainer);
+        
+        console.log('Botones de acción mostrados');
+    }
+
+    static hideActionButtons() {
+        const actionContainer = document.getElementById('floating-action-buttons');
+        if (actionContainer) {
+            // Agregar clase de animación de salida
+            actionContainer.classList.add('hiding');
+            
+            // Remover después de la animación
+            setTimeout(() => {
+                if (actionContainer.parentNode) {
+                    actionContainer.remove();
+                }
+            }, 300);
         }
     }
 
@@ -1477,6 +1567,37 @@ class Reception {
                 .quick-buttons {
                     flex-direction: column;
                 }
+            }
+            
+            /* Animación para botones de acción flotantes */
+            @keyframes slideInUp {
+                from {
+                    transform: translateY(100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutDown {
+                from {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateY(100px);
+                    opacity: 0;
+                }
+            }
+            
+            #floating-action-buttons {
+                animation: slideInUp 0.3s ease-out;
+            }
+            
+            #floating-action-buttons.hiding {
+                animation: slideOutDown 0.3s ease-in;
             }
         `;
         
