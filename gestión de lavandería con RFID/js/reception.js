@@ -787,7 +787,11 @@ class Reception {
                     receptionNotes: notes
                 });
                 garmentIds.push(garment.id);
+                console.log('✅ Prenda guardada:', garment);
             }
+            
+            console.log('📊 Total de prendas guardadas:', garmentIds.length);
+            console.log('📋 Todas las prendas en el sistema:', Storage.getGarments());
 
             // Crear guía de recepción
             const guide = Storage.addGuide({

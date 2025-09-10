@@ -42,11 +42,57 @@ class LaundryApp {
     }
 
     initializeStorage() {
-        // Solo inicializar si no hay datos existentes
-        if (!localStorage.getItem('laundry_initialized')) {
+        console.log('🔧 Inicializando storage...');
+        
+        // Verificar si ya hay datos existentes
+        const hasClients = Storage.getClients().length > 0;
+        const hasGarments = Storage.getGarments().length > 0;
+        const isInitialized = localStorage.getItem('laundry_initialized');
+        
+        console.log('🔧 Estado actual:', {
+            hasClients,
+            hasGarments,
+            isInitialized,
+            totalClients: Storage.getClients().length,
+            totalGarments: Storage.getGarments().length
+        });
+        
+        // Solo inicializar si no hay datos existentes Y no está marcado como inicializado
+        if (!isInitialized && !hasClients && !hasGarments) {
+            console.log('🗄️ Inicializando datos de ejemplo...');
             Storage.initializeDefaultData();
             localStorage.setItem('laundry_initialized', 'true');
             console.log('🗄️ Datos de ejemplo inicializados');
+        } else if (hasClients || hasGarments) {
+            // Marcar como inicializado si ya hay datos
+            localStorage.setItem('laundry_initialized', 'true');
+            console.log('🗄️ Datos existentes detectados, preservando información');
+            
+            // Verificar y corregir integridad de datos
+            this.verifyAndFixDataIntegrity();
+        } else {
+            console.log('🗄️ Sistema ya inicializado, no se modifican datos');
+        }
+        
+        // Mostrar estado final
+        console.log('🔧 Estado final:', {
+            totalClients: Storage.getClients().length,
+            totalGarments: Storage.getGarments().length
+        });
+    }
+
+    verifyAndFixDataIntegrity() {
+        try {
+            const issues = Storage.verifyDataIntegrity();
+            if (issues.length > 0) {
+                console.warn('⚠️ Problemas de integridad detectados:', issues);
+                Storage.fixCounters();
+                console.log('✅ Integridad de datos corregida');
+            } else {
+                console.log('✅ Integridad de datos verificada correctamente');
+            }
+        } catch (error) {
+            console.error('❌ Error verificando integridad:', error);
         }
     }
 

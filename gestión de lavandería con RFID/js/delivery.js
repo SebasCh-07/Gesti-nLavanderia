@@ -229,19 +229,50 @@ class Delivery {
     }
 
     static confirmDelivery() {
-        // Simular entrega
-        this.scannedGarments.forEach(garment => {
-            Storage.addHistoryEntry({
-                clientId: this.selectedClient.id,
-                action: 'entrega',
-                operator: 'sistema',
-                details: `Entrega de prenda ${garment.rfidCode}`
+        try {
+            // Actualizar estado de las prendas a 'entregado'
+            const garmentIds = [];
+            this.scannedGarments.forEach(garment => {
+                const garmentData = Storage.getGarmentByRfid(garment.rfidCode);
+                if (garmentData) {
+                    // Actualizar estado de la prenda
+                    Storage.updateGarment(garmentData.id, {
+                        status: 'entregado',
+                        deliveredAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    });
+                    garmentIds.push(garmentData.id);
+                    
+                    // Registrar en historial
+                    Storage.addHistoryEntry({
+                        clientId: this.selectedClient.id,
+                        garmentIds: [garmentData.id],
+                        action: 'entrega',
+                        operator: app.currentUser?.username || 'sistema',
+                        details: `Entrega de prenda ${garment.rfidCode} - ${garmentData.type} ${garmentData.color}`
+                    });
+                }
             });
-        });
-        
-        app.showSuccessMessage('Entrega confirmada exitosamente');
-        this.resetDelivery();
-        this.refreshContent();
+
+            // Crear guía de entrega
+            if (garmentIds.length > 0) {
+                Storage.addGuide({
+                    type: 'entrega',
+                    clientId: this.selectedClient.id,
+                    garmentIds: garmentIds,
+                    totalItems: garmentIds.length,
+                    notes: `Entrega completada - ${new Date().toLocaleString('es-ES')}`
+                });
+            }
+            
+            app.showSuccessMessage(`Entrega confirmada: ${garmentIds.length} prenda(s) entregada(s)`);
+            this.resetDelivery();
+            this.refreshContent();
+            
+        } catch (error) {
+            console.error('Error en confirmación de entrega:', error);
+            app.showErrorMessage('Error procesando la entrega. Intente nuevamente.');
+        }
     }
 
     static searchClients(query) {

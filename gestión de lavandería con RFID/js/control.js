@@ -1049,10 +1049,13 @@ class Control {
     // Métodos de utilidad
     static getFilteredGarments() {
         let garments = Storage.getGarments();
+        console.log('🔍 Control Interno - Total de prendas obtenidas:', garments.length);
+        console.log('🔍 Control Interno - Prendas completas:', garments);
 
         // Filtrar por estado
         if (this.selectedStatus !== 'all') {
             garments = garments.filter(g => g.status === this.selectedStatus);
+            console.log(`🔍 Control Interno - Filtradas por estado '${this.selectedStatus}':`, garments.length);
         }
 
         // Filtrar por cliente específico si está seleccionado

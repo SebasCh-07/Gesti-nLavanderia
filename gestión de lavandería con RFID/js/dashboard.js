@@ -87,6 +87,15 @@ class Dashboard {
                         ${this.renderSystemInfo()}
                     </div>
 
+                    <!-- Herramientas de administración -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Herramientas de Administración</h3>
+                            <p class="card-subtitle">Gestión de datos del sistema</p>
+                        </div>
+                        ${this.renderAdminTools()}
+                    </div>
+
                     <!-- Clientes más activos -->
                     <div class="card">
                         <div class="card-header">
@@ -233,6 +242,36 @@ class Dashboard {
                 <div class="info-item">
                     <span class="info-label">Espacio Usado:</span>
                     <span class="info-value">${this.getStorageUsage()}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    static renderAdminTools() {
+        return `
+            <div class="admin-tools">
+                <div class="tool-buttons">
+                    <button class="btn btn-info btn-sm" onclick="Dashboard.exportBackup()">
+                        💾 Exportar Backup
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="Dashboard.importBackup()">
+                        📥 Importar Backup
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="Dashboard.verifyIntegrity()">
+                        🔍 Verificar Integridad
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="Dashboard.clearData()">
+                        🗑️ Limpiar Datos
+                    </button>
+                    <button class="btn btn-info btn-sm" onclick="Dashboard.debugStorage()">
+                        🔍 Debug Storage
+                    </button>
+                </div>
+                <div class="tool-info">
+                    <small class="text-muted">
+                        💡 Los backups incluyen todos los datos del sistema. 
+                        La verificación de integridad corrige automáticamente problemas detectados.
+                    </small>
                 </div>
             </div>
         `;
@@ -716,11 +755,101 @@ class Dashboard {
             .quick-actions .btn-block {
                 margin-bottom: 8px;
             }
+            .admin-tools {
+                padding: 15px;
+            }
+            .tool-buttons {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+            .tool-info {
+                padding: 10px;
+                background: #f7fafc;
+                border-radius: 6px;
+                border-left: 4px solid #4299e1;
+            }
         `;
         
         if (!document.querySelector('#dashboard-styles')) {
             style.id = 'dashboard-styles';
             document.head.appendChild(style);
+        }
+    }
+
+    // Métodos de administración
+    static exportBackup() {
+        try {
+            Storage.exportAllData();
+            app.showSuccessMessage('Backup exportado correctamente');
+        } catch (error) {
+            console.error('Error exportando backup:', error);
+            app.showErrorMessage('Error exportando backup');
+        }
+    }
+
+    static importBackup() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (Storage.importData(data)) {
+                            app.showSuccessMessage('Backup importado correctamente');
+                            // Recargar la página para mostrar los nuevos datos
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            app.showErrorMessage('Error importando backup');
+                        }
+                    } catch (error) {
+                        console.error('Error procesando archivo:', error);
+                        app.showErrorMessage('Archivo de backup inválido');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
+    static verifyIntegrity() {
+        try {
+            const issues = Storage.verifyDataIntegrity();
+            if (issues.length > 0) {
+                console.warn('Problemas detectados:', issues);
+                Storage.fixCounters();
+                app.showSuccessMessage(`Integridad verificada. ${issues.length} problema(s) corregido(s)`);
+            } else {
+                app.showSuccessMessage('Integridad de datos verificada correctamente');
+            }
+            // Recargar dashboard para mostrar estado actualizado
+            Navigation.loadPage('dashboard');
+        } catch (error) {
+            console.error('Error verificando integridad:', error);
+            app.showErrorMessage('Error verificando integridad');
+        }
+    }
+
+    static debugStorage() {
+        Storage.debugStorageState();
+        app.showSuccessMessage('Estado del storage mostrado en consola');
+    }
+
+    static clearData() {
+        if (confirm('⚠️ ADVERTENCIA: Esta acción eliminará TODOS los datos del sistema.\n\n¿Está completamente seguro?')) {
+            if (confirm('Esta acción NO se puede deshacer. ¿Continuar?')) {
+                if (Storage.clearTestData()) {
+                    app.showSuccessMessage('Datos limpiados correctamente');
+                    // Recargar la página
+                    setTimeout(() => location.reload(), 1000);
+                }
+            }
         }
     }
 }
