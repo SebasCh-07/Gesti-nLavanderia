@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - Sistema Lavandería RFID</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🧺</text></svg>">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo h1 {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .hidden {
+            display: none;
+        }
+        .main-screen {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .demo-info {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 14px;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="logo">
+                <h1>🧺 LavanderíaRFID</h1>
+                <p>Test de Login Simplificado</p>
+            </div>
+            
+            <form id="simple-login-form">
+                <div class="input-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" value="admin" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" value="admin123" required>
+                </div>
+                <button type="submit" class="login-btn" id="login-button">Iniciar Sesión</button>
+            </form>
+            
+            <div id="status-message" class="status hidden"></div>
+            
+            <div class="demo-info">
+                <p><strong>Credenciales de prueba:</strong></p>
+                <p>Usuario: admin</p>
+                <p>Contraseña: admin123</p>
+                <hr>
+                <p><strong>Debug:</strong></p>
+                <button type="button" onclick="testBasicFeatures()" style="padding: 5px 10px; margin: 5px;">Test Básico</button>
+                <button type="button" onclick="openDebugPanel()" style="padding: 5px 10px; margin: 5px;">Debug Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla Principal (oculta inicialmente) -->
+    <div id="main-screen" class="hidden">
+        <div class="main-screen">
+            <h1>✅ ¡Login Exitoso!</h1>
+            <p>Bienvenido al Sistema de Gestión de Lavandería RFID</p>
+            
+            <div style="margin: 30px 0;">
+                <h3>🎯 Próximos Pasos:</h3>
+                <p>El login está funcionando correctamente. Ahora puedes:</p>
+                <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                    <li>✅ Verificar que todos los módulos cargan</li>
+                    <li>🔄 Probar la navegación entre páginas</li>
+                    <li>📊 Acceder al dashboard completo</li>
+                    <li>👥 Gestionar clientes y prendas</li>
+                </ul>
+            </div>
+            
+            <div>
+                <button onclick="openFullApp()" class="login-btn">🚀 Abrir Aplicación Completa</button>
+                <button onclick="logout()" style="background: #6c757d; padding: 10px 20px; border: none; border-radius: 8px; color: white; cursor: pointer; margin: 10px;">🚪 Cerrar Sesión</button>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                <p>Usuario logueado: <strong id="logged-user">admin</strong></p>
+                <p>Hora de login: <strong id="login-time"></strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentUser = null;
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Test simple cargado');
+            
+            // Configurar formulario de login
+            const loginForm = document.getElementById('simple-login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+                console.log('✅ Formulario de login configurado');
+            } else {
+                console.error('❌ No se encontró el formulario de login');
+            }
+            
+            // Verificar si ya hay una sesión activa
+            checkExistingSession();
+        });
+        
+        function handleLogin(event) {
+            event.preventDefault();
+            console.log('🔑 Procesando login...');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const loginButton = document.getElementById('login-button');
+            
+            // Mostrar estado de carga
+            showStatus('Verificando credenciales...', 'info');
+            loginButton.disabled = true;
+            loginButton.textContent = 'Verificando...';
+            
+            // Simular delay de verificación
+            setTimeout(() => {
+                if (validateCredentials(username, password)) {
+                    console.log('✅ Credenciales válidas');
+                    performLogin(username);
+                } else {
+                    console.log('❌ Credenciales inválidas');
+                    showStatus('Credenciales incorrectas. Intente nuevamente.', 'error');
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Iniciar Sesión';
+                }
+            }, 1000);
+        }
+        
+        function validateCredentials(username, password) {
+            const validCredentials = [
+                { username: 'admin', password: 'admin123' },
+                { username: 'operador', password: 'op123' },
+                { username: 'supervisor', password: 'sup123' }
+            ];
+            
+            return validCredentials.some(cred => 
+                cred.username === username && cred.password === password
+            );
+        }
+        
+        function performLogin(username) {
+            // Crear objeto usuario
+            currentUser = {
+                id: 1,
+                username: username,
+                name: username === 'admin' ? 'Administrador' : username,
+                role: 'admin',
+                loginTime: new Date().toISOString(),
+                permissions: ['read', 'write', 'delete', 'admin']
+            };
+            
+            // Guardar en localStorage
+            try {
+                localStorage.setItem('current_user', JSON.stringify(currentUser));
+                console.log('✅ Usuario guardado en localStorage');
+            } catch (error) {
+                console.error('❌ Error guardando en localStorage:', error);
+            }
+            
+            // Mostrar éxito y cambiar pantalla
+            showStatus('¡Login exitoso! Redirigiendo...', 'success');
+            
+            setTimeout(() => {
+                showMainScreen();
+            }, 1500);
+        }
+        
+        function showMainScreen() {
+            console.log('🖥️ Mostrando pantalla principal...');
+            
+            const loginScreen = document.getElementById('login-screen');
+            const mainScreen = document.getElementById('main-screen');
+            
+            if (loginScreen && mainScreen) {
+                loginScreen.classList.add('hidden');
+                mainScreen.classList.remove('hidden');
+                
+                // Actualizar información del usuario
+                document.getElementById('logged-user').textContent = currentUser.name;
+                document.getElementById('login-time').textContent = new Date(currentUser.loginTime).toLocaleString('es-ES');
+                
+                console.log('✅ Pantalla principal mostrada');
+            } else {
+                console.error('❌ No se encontraron los elementos de pantalla');
+                showStatus('Error mostrando pantalla principal', 'error');
+            }
+        }
+        
+        function checkExistingSession() {
+            try {
+                const savedUser = localStorage.getItem('current_user');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    console.log('✅ Sesión existente encontrada:', currentUser.username);
+                    showMainScreen();
+                }
+            } catch (error) {
+                console.error('❌ Error verificando sesión existente:', error);
+                localStorage.removeItem('current_user');
+            }
+        }
+        
+        function logout() {
+            console.log('🚪 Cerrando sesión...');
+            
+            try {
+                localStorage.removeItem('current_user');
+                currentUser = null;
+                
+                const loginScreen = document.getElementById('login-screen');
+                const mainScreen = document.getElementById('main-screen');
+                
+                loginScreen.classList.remove('hidden');
+                mainScreen.classList.add('hidden');
+                
+                // Limpiar formulario
+                document.getElementById('username').value = 'admin';
+                document.getElementById('password').value = 'admin123';
+                document.getElementById('login-button').disabled = false;
+                document.getElementById('login-button').textContent = 'Iniciar Sesión';
+                
+                showStatus('Sesión cerrada correctamente', 'info');
+                
+                console.log('✅ Sesión cerrada');
+            } catch (error) {
+                console.error('❌ Error cerrando sesión:', error);
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status-message');
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+                statusElement.classList.remove('hidden');
+                
+                // Auto-ocultar después de 5 segundos si es éxito o error
+                if (type === 'success' || type === 'error') {
+                    setTimeout(() => {
+                        statusElement.classList.add('hidden');
+                    }, 5000);
+                }
+            }
+        }
+        
+        function testBasicFeatures() {
+            console.log('🧪 Ejecutando test básico...');
+            
+            let results = [];
+            
+            // Test 1: localStorage
+            try {
+                localStorage.setItem('test', 'value');
+                const retrieved = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                results.push(retrieved === 'value' ? '✅ localStorage: OK' : '❌ localStorage: FAIL');
+            } catch (error) {
+                results.push('❌ localStorage: ERROR - ' + error.message);
+            }
+            
+            // Test 2: Formulario
+            const form = document.getElementById('simple-login-form');
+            results.push(form ? '✅ Formulario: OK' : '❌ Formulario: FAIL');
+            
+            // Test 3: Elementos DOM
+            const loginScreen = document.getElementById('login-screen');
+            const mainScreen = document.getElementById('main-screen');
+            results.push(loginScreen && mainScreen ? '✅ Elementos DOM: OK' : '❌ Elementos DOM: FAIL');
+            
+            // Test 4: Validación de credenciales
+            const isValid = validateCredentials('admin', 'admin123');
+            results.push(isValid ? '✅ Validación: OK' : '❌ Validación: FAIL');
+            
+            alert('🧪 Resultados del Test Básico:\n\n' + results.join('\n'));
+            console.log('Resultados del test:', results);
+        }
+        
+        function openDebugPanel() {
+            window.open('debug.html', '_blank');
+        }
+        
+        function openFullApp() {
+            window.open('index.html', '_blank');
+        }
+    </script>
+</body>
+</html>
+
+

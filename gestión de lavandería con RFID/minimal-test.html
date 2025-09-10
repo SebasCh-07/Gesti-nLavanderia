@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Mínimo</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        .screen { padding: 30px; background: white; border-radius: 10px; margin: 20px 0; }
+        .hidden { display: none !important; }
+        input, button { padding: 10px; margin: 5px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Mínimo de Login</h1>
+    
+    <!-- LOGIN -->
+    <div id="login" class="screen">
+        <h2>🔐 Login</h2>
+        <input type="text" id="user" value="admin" placeholder="Usuario">
+        <input type="password" id="pass" value="admin123" placeholder="Contraseña">
+        <button onclick="doLogin()">Entrar</button>
+    </div>
+    
+    <!-- MAIN -->
+    <div id="main" class="screen hidden">
+        <h2>✅ ¡Éxito!</h2>
+        <div class="success">Has ingresado correctamente al sistema</div>
+        <button onclick="doLogout()">Salir</button>
+    </div>
+    
+    <!-- LOG -->
+    <div class="screen">
+        <h3>📋 Log de eventos:</h3>
+        <div id="log" style="background: #f8f9fa; padding: 10px; height: 200px; overflow-y: scroll; font-family: monospace;"></div>
+        <button onclick="clearLog()">Limpiar</button>
+    </div>
+
+    <script>
+        function addLog(msg) {
+            const now = new Date().toLocaleTimeString();
+            const log = document.getElementById('log');
+            log.innerHTML += `<div>${now} - ${msg}</div>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function doLogin() {
+            addLog('🔑 INICIANDO LOGIN...');
+            
+            const user = document.getElementById('user').value;
+            const pass = document.getElementById('pass').value;
+            
+            addLog(`Usuario: "${user}"`);
+            addLog(`Password: "${pass}"`);
+            
+            if (user === 'admin' && pass === 'admin123') {
+                addLog('✅ Credenciales correctas');
+                
+                // Intentar ocultar login
+                const loginDiv = document.getElementById('login');
+                if (loginDiv) {
+                    loginDiv.classList.add('hidden');
+                    addLog('👁️ Login ocultado');
+                } else {
+                    addLog('❌ No se encontró div login');
+                }
+                
+                // Intentar mostrar main
+                const mainDiv = document.getElementById('main');
+                if (mainDiv) {
+                    mainDiv.classList.remove('hidden');
+                    addLog('👁️ Main mostrado');
+                } else {
+                    addLog('❌ No se encontró div main');
+                }
+                
+                addLog('🎉 LOGIN COMPLETADO');
+                
+            } else {
+                addLog('❌ Credenciales incorrectas');
+                alert('Credenciales incorrectas');
+            }
+        }
+        
+        function doLogout() {
+            addLog('🚪 LOGOUT...');
+            
+            document.getElementById('login').classList.remove('hidden');
+            document.getElementById('main').classList.add('hidden');
+            
+            addLog('✅ Logout completado');
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Sistema inicializado');
+            addLog('📱 DOM listo');
+            
+            // Verificar elementos
+            const login = document.getElementById('login');
+            const main = document.getElementById('main');
+            
+            addLog(`Login existe: ${login ? 'SÍ' : 'NO'}`);
+            addLog(`Main existe: ${main ? 'SÍ' : 'NO'}`);
+            addLog(`Main está oculto: ${main ? main.classList.contains('hidden') : 'N/A'}`);
+        });
+    </script>
+</body>
+</html>
+
+
