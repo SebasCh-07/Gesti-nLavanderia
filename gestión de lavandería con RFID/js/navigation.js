@@ -85,12 +85,15 @@ class Navigation {
         const mainContent = document.querySelector('.main-content');
         if (mainContent && !document.querySelector('.breadcrumbs')) {
             const breadcrumbsHtml = `
-                <nav class="breadcrumbs">
-                    <span class="breadcrumb-item">
-                        🏠 <a href="#" onclick="Navigation.loadPage('dashboard')">Inicio</a>
-                    </span>
-                    <span class="breadcrumb-separator">/</span>
-                    <span class="breadcrumb-current"></span>
+                <nav class="breadcrumbs fade-in" style="margin-bottom: 20px; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                        <span class="breadcrumb-item" style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 16px;">🏠</span>
+                            <a href="#" onclick="Navigation.loadPage('dashboard')" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">Inicio</a>
+                        </span>
+                        <span class="breadcrumb-separator" style="color: #a0aec0;">/</span>
+                        <span class="breadcrumb-current" style="color: var(--muted-text); font-weight: 500;"></span>
+                    </div>
                 </nav>
             `;
             mainContent.insertAdjacentHTML('afterbegin', breadcrumbsHtml);
@@ -101,7 +104,17 @@ class Navigation {
         const currentBreadcrumb = document.querySelector('.breadcrumb-current');
         if (currentBreadcrumb && this.pages[pageName]) {
             const page = this.pages[pageName];
-            currentBreadcrumb.innerHTML = `${page.icon} ${page.title}`;
+            
+            // Animación de transición
+            currentBreadcrumb.style.opacity = '0';
+            currentBreadcrumb.style.transform = 'translateX(10px)';
+            
+            setTimeout(() => {
+                currentBreadcrumb.innerHTML = `${page.icon} ${page.title}`;
+                currentBreadcrumb.style.transition = 'all 0.3s ease';
+                currentBreadcrumb.style.opacity = '1';
+                currentBreadcrumb.style.transform = 'translateX(0)';
+            }, 150);
         }
     }
 
@@ -161,6 +174,12 @@ class Navigation {
 
         const page = this.pages[pageName];
         
+        // Añadir clase de transición
+        pageContent.classList.add('page-transition');
+        
+        // Pequeña demora para mostrar la transición
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Verificar si el módulo existe
         if (window[page.module] && typeof window[page.module].render === 'function') {
             // Llamar al método render del módulo
@@ -175,6 +194,12 @@ class Navigation {
             // Página no implementada - mostrar placeholder
             pageContent.innerHTML = this.getPlaceholderContent(page);
         }
+        
+        // Activar transición de entrada
+        setTimeout(() => {
+            pageContent.classList.remove('page-transition');
+            pageContent.classList.add('loaded');
+        }, 50);
     }
 
     static getPlaceholderContent(page) {
@@ -201,9 +226,9 @@ class Navigation {
         const pageContent = document.getElementById('page-content');
         if (pageContent) {
             pageContent.innerHTML = `
-                <div class="loading-container" style="text-align: center; padding: 60px;">
-                    <div class="loader"></div>
-                    <p style="margin-top: 20px; color: #718096;">Cargando...</p>
+                <div class="page-loading">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">Cargando contenido</p>
                 </div>
             `;
         }
@@ -342,6 +367,10 @@ class Navigation {
                 const pageIndex = parseInt(e.key) - 1;
                 if (pageKeys[pageIndex]) {
                     this.loadPage(pageKeys[pageIndex]);
+                    // Mostrar notificación de atajo
+                    if (window.app) {
+                        window.app.showNotification(`Navegando a ${this.pages[pageKeys[pageIndex]].title}`, 'info');
+                    }
                 }
             }
             
@@ -349,6 +378,29 @@ class Navigation {
             if (e.ctrlKey && e.key === 'r') {
                 e.preventDefault();
                 this.refresh();
+                if (window.app) {
+                    window.app.showNotification('Página actualizada', 'success');
+                }
+            }
+            
+            // Ctrl+H para ir al dashboard
+            if (e.ctrlKey && e.key === 'h') {
+                e.preventDefault();
+                this.loadPage('dashboard');
+                if (window.app) {
+                    window.app.showNotification('Navegando al Dashboard', 'info');
+                }
+            }
+            
+            // Escape para cerrar modales
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('.modal.active');
+                if (modals.length > 0) {
+                    modals.forEach(modal => modal.remove());
+                    if (window.app) {
+                        window.app.showNotification('Modal cerrado', 'info');
+                    }
+                }
             }
         });
     }

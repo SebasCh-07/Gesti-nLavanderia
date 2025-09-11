@@ -11,8 +11,8 @@ class Dashboard {
         const quickActions = this.getQuickActions();
 
         return `
-            <div class="dashboard">
-                <div class="page-header">
+            <div class="dashboard fade-in">
+                <div class="page-header slide-in-up">
                     <h1>📊 Dashboard</h1>
                     <p>Resumen del estado del sistema de lavandería</p>
                 </div>
@@ -22,23 +22,23 @@ class Dashboard {
 
             <!-- Estadísticas principales -->
             <div class="grid grid-4 mb-3">
-                <div class="card text-center">
-                    <h3 class="text-primary">${stats.totalClients}</h3>
+                <div class="card text-center scale-in" style="animation-delay: 0.1s;">
+                    <h3 class="text-primary pulse">${stats.totalClients}</h3>
                     <p class="text-muted">Clientes Registrados</p>
                     <small class="badge badge-info">👥 Total</small>
                 </div>
-                <div class="card text-center">
-                    <h3 class="text-warning">${stats.garmentsInProcess}</h3>
+                <div class="card text-center scale-in" style="animation-delay: 0.2s;">
+                    <h3 class="text-warning pulse">${stats.garmentsInProcess}</h3>
                     <p class="text-muted">Prendas en Proceso</p>
                     <small class="badge badge-warning">⚙️ En curso</small>
                 </div>
-                <div class="card text-center">
-                    <h3 class="text-success">${stats.garmentsReady}</h3>
+                <div class="card text-center scale-in" style="animation-delay: 0.3s;">
+                    <h3 class="text-success pulse">${stats.garmentsReady}</h3>
                     <p class="text-muted">Prendas Listas</p>
                     <small class="badge badge-success">✅ Completadas</small>
                 </div>
-                <div class="card text-center">
-                    <h3 class="text-info">${stats.activeGuides}</h3>
+                <div class="card text-center scale-in" style="animation-delay: 0.4s;">
+                    <h3 class="text-info pulse">${stats.activeGuides}</h3>
                     <p class="text-muted">Guías Activas</p>
                     <small class="badge badge-info">📄 Pendientes</small>
                 </div>
@@ -659,6 +659,46 @@ class Dashboard {
 
         // Añadir estilos específicos del dashboard
         this.addDashboardStyles();
+        
+        // Añadir efectos interactivos
+        this.addInteractiveEffects();
+        
+        // Configurar auto-refresh de estadísticas
+        this.setupAutoRefresh();
+    }
+
+    static addInteractiveEffects() {
+        // Añadir efectos de hover a las tarjetas de estadísticas
+        setTimeout(() => {
+            const statCards = document.querySelectorAll('.card.text-center');
+            statCards.forEach((card, index) => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-8px) scale(1.05)';
+                    card.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0) scale(1)';
+                    card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.08)';
+                });
+            });
+        }, 100);
+    }
+
+    static setupAutoRefresh() {
+        // Actualizar estadísticas cada 10 segundos si el dashboard está visible
+        setInterval(() => {
+            if (Navigation.getCurrentPage() === 'dashboard') {
+                const statValues = document.querySelectorAll('.card.text-center h3');
+                statValues.forEach(value => {
+                    value.style.transition = 'all 0.3s ease';
+                    value.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        value.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            }
+        }, 10000);
     }
 
     static addDashboardStyles() {

@@ -279,8 +279,11 @@ class LaundryApp {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.innerHTML = `
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()">&times;</button>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${this.getNotificationIcon(type)}</span>
+                <span>${message}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; margin-left: 10px;">&times;</button>
         `;
         
         // Estilos inline para las notificaciones
@@ -289,35 +292,49 @@ class LaundryApp {
             top: 20px;
             right: 20px;
             padding: 15px 20px;
-            border-radius: 8px;
+            border-radius: 12px;
             color: white;
             z-index: 10000;
-            max-width: 300px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 350px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 500;
         `;
 
         // Colores según el tipo
         const colors = {
-            success: '#48bb78',
-            error: '#f56565',
-            warning: '#ed8936',
-            info: '#4299e1'
+            success: 'linear-gradient(135deg, #48bb78, #38a169)',
+            error: 'linear-gradient(135deg, #f56565, #e53e3e)',
+            warning: 'linear-gradient(135deg, #ed8936, #dd6b20)',
+            info: 'linear-gradient(135deg, #4299e1, #3182ce)'
         };
-        notification.style.backgroundColor = colors[type] || colors.info;
+        notification.style.background = colors[type] || colors.info;
 
         document.body.appendChild(notification);
 
         // Auto-remove después de 5 segundos
         setTimeout(() => {
             if (notification.parentElement) {
-                notification.style.animation = 'slideOut 0.3s ease';
+                notification.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                notification.style.transform = 'translateX(100%)';
+                notification.style.opacity = '0';
                 setTimeout(() => notification.remove(), 300);
             }
         }, 5000);
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        return icons[type] || icons.info;
     }
 
     saveAppState() {
@@ -337,14 +354,29 @@ class LaundryApp {
         const overlay = document.getElementById('sidebar-overlay');
         
         if (mobileMenuBtn && sidebar && overlay) {
-            // Toggle del menú móvil
+            // Toggle del menú móvil con animación
             mobileMenuBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
+                const isActive = sidebar.classList.contains('active');
+                
+                if (isActive) {
+                    // Cerrar menú
+                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    overlay.style.transition = 'opacity 0.3s ease';
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                } else {
+                    // Abrir menú
+                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    overlay.style.transition = 'opacity 0.3s ease';
+                    sidebar.classList.add('active');
+                    overlay.classList.add('active');
+                }
             });
             
             // Cerrar menú al hacer click en el overlay
             overlay.addEventListener('click', () => {
+                sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                overlay.style.transition = 'opacity 0.3s ease';
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
             });
@@ -355,10 +387,22 @@ class LaundryApp {
                 item.addEventListener('click', () => {
                     // Solo en móvil (cuando el overlay es visible)
                     if (window.innerWidth <= 768) {
+                        sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        overlay.style.transition = 'opacity 0.3s ease';
                         sidebar.classList.remove('active');
                         overlay.classList.remove('active');
                     }
                 });
+            });
+            
+            // Cerrar menú con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    overlay.style.transition = 'opacity 0.3s ease';
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
             });
             
             console.log('✅ Menú móvil inicializado');
@@ -417,9 +461,10 @@ class LaundryApp {
         const loginButton = document.getElementById('login-button');
         const loginText = document.getElementById('login-text');
 
-        // UI de loading
+        // UI de loading mejorada
         loginButton.disabled = true;
-        loginText.innerHTML = '<span class="loading-spinner"></span>Iniciando sesión...';
+        loginButton.classList.add('loading');
+        loginText.innerHTML = '<div class="loading-spinner" style="width: 16px; height: 16px; margin-right: 8px;"></div>Iniciando sesión...';
         errorDiv.style.display = 'none';
 
         try {
@@ -429,27 +474,33 @@ class LaundryApp {
                 this.currentUser = result.user;
                 this.showSuccessMessage(result.message);
                 
-                // Animar transición
+                // Animar transición mejorada
                 const loginScreen = document.getElementById('login-screen');
                 if (loginScreen) {
-                    loginScreen.classList.add('fade-out');
-                    setTimeout(() => this.showMainScreen(), 300);
+                    loginScreen.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                    loginScreen.style.transform = 'translateY(-100%)';
+                    loginScreen.style.opacity = '0';
+                    setTimeout(() => this.showMainScreen(), 500);
                 }
             } else {
                 errorDiv.textContent = result.message;
                 errorDiv.style.display = 'block';
+                errorDiv.classList.add('bounce');
                 
-                // Shake animation
-                loginButton.style.animation = 'shake 0.5s';
+                // Shake animation mejorada
+                loginButton.style.animation = 'shake 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
                 setTimeout(() => {
                     loginButton.style.animation = '';
-                }, 500);
+                    errorDiv.classList.remove('bounce');
+                }, 600);
             }
         } catch (error) {
             errorDiv.textContent = 'Error de conexión. Intente nuevamente.';
             errorDiv.style.display = 'block';
+            errorDiv.classList.add('bounce');
         } finally {
             loginButton.disabled = false;
+            loginButton.classList.remove('loading');
             loginText.textContent = 'Iniciar Sesión';
         }
     }
