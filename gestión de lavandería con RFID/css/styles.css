@@ -2079,4 +2079,613 @@ body {
     }
 }
 
+/* Estilos para selector de sucursal */
+.branch-selector {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.branch-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 6px;
+}
+
+.branch-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.85rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+.branch-select:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.branch-select option {
+    background: #2d3748;
+    color: white;
+    padding: 8px;
+}
+
+/* Responsive para selector de sucursal */
+@media (max-width: 768px) {
+    .branch-selector {
+        margin: 8px;
+        padding: 10px;
+    }
+    
+    .branch-label {
+        font-size: 0.75rem;
+    }
+    
+    .branch-select {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+}
+
+/* Estilos PWA */
+.pwa-mode {
+    /* Estilos específicos cuando la app se ejecuta como PWA */
+}
+
+.pwa-mode .mobile-menu-btn {
+    display: none; /* Ocultar botón de menú móvil en PWA */
+}
+
+.install-pwa-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-radius: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+.install-pwa-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    50% {
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    100% {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+}
+
+/* Estilos para configuración de notificaciones */
+.notification-settings {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.settings-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.settings-header h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.settings-header p {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.settings-content {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.permission-status {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.status-value {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.status-value.granted {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-value.denied {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-value.default {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.notification-types {
+    margin-bottom: 25px;
+}
+
+.notification-types h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.type-item {
+    margin-bottom: 12px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #2c3e50;
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.test-notifications h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.test-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.test-buttons .btn {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Responsive para notificaciones */
+@media (max-width: 768px) {
+    .install-pwa-btn {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .test-buttons {
+        flex-direction: column;
+    }
+    
+    .test-buttons .btn {
+        min-width: auto;
+    }
+}
+
+/* Mejoras de responsividad móvil */
+@media (max-width: 768px) {
+    /* Ajustes generales para móvil */
+    body {
+        font-size: 14px;
+    }
+    
+    /* Sidebar móvil */
+    .sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .sidebar-header {
+        padding: 15px 20px;
+    }
+    
+    .sidebar-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .sidebar-menu {
+        padding: 10px 0;
+    }
+    
+    .menu-item {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+    
+    /* Contenido principal */
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+        width: 100%;
+    }
+    
+    /* Botón de menú móvil */
+    .mobile-menu-btn {
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 18px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Overlay para móvil */
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: none;
+    }
+    
+    .mobile-overlay.active {
+        display: block;
+    }
+    
+    /* Cards y contenedores */
+    .card {
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+    
+    .card-header {
+        padding: 15px;
+    }
+    
+    .card-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    /* Formularios móviles */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-control {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+    
+    /* Botones móviles */
+    .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        min-height: 44px; /* Tamaño mínimo recomendado para touch */
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+    }
+    
+    /* Tablas móviles */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table {
+        min-width: 600px;
+        font-size: 0.9rem;
+    }
+    
+    .table th,
+    .table td {
+        padding: 8px 6px;
+    }
+    
+    /* Grids responsivos */
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    /* Stats cards */
+    .stat-card {
+        padding: 20px 15px;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+    }
+    
+    /* Modales móviles */
+    .modal {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 15px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .modal-footer {
+        padding: 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+    
+    /* Breadcrumbs móviles */
+    .breadcrumbs {
+        padding: 8px 0;
+        font-size: 0.85rem;
+    }
+    
+    /* Page header móvil */
+    .page-header {
+        margin-bottom: 20px;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    /* Alertas móviles */
+    .alert {
+        padding: 12px 15px;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Badges móviles */
+    .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    
+    /* Input groups móviles */
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .input-group .form-control {
+        border-radius: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .input-group .btn {
+        border-radius: 6px;
+    }
+    
+    /* Search bars móviles */
+    .search-bar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .search-bar .form-control {
+        width: 100%;
+    }
+    
+    /* Pagination móvil */
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .pagination .btn {
+        min-width: 40px;
+        padding: 8px 12px;
+    }
+    
+    /* Tooltips móviles - deshabilitar en móvil */
+    .tooltip {
+        display: none !important;
+    }
+    
+    /* Mejoras de accesibilidad táctil */
+    .clickable {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Espaciado táctil mejorado */
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Scroll suave en iOS */
+    .scroll-container {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevenir zoom en inputs */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    textarea,
+    select {
+        font-size: 16px;
+    }
+    
+    /* Mejoras para pantallas pequeñas */
+    @media (max-width: 480px) {
+        .main-content {
+            padding: 10px;
+        }
+        
+        .card {
+            margin-bottom: 10px;
+        }
+        
+        .card-header,
+        .card-body {
+            padding: 12px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+        
+        .page-header h1 {
+            font-size: 1.3rem;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+        }
+        
+        .modal {
+            padding: 10px;
+        }
+        
+        .modal-content {
+            margin: 5px;
+        }
+    }
+    
+    /* Orientación landscape en móvil */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .sidebar {
+            width: 280px;
+        }
+        
+        .main-content {
+            margin-left: 0;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+        }
+    }
+}
+
 

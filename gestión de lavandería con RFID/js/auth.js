@@ -11,15 +11,47 @@ class Auth {
         this.maxAttempts = 5;
         this.lockoutTime = 5 * 60 * 1000; // 5 minutos
         
-        // Usuario predefinido para el prototipo
+        // Usuarios predefinidos para el prototipo con diferentes roles
         this.users = [
             {
                 id: 1,
                 username: 'admin',
                 password: 'admin123',
-                name: 'Administrador',
+                name: 'Administrador del Sistema',
                 role: 'admin',
-                email: 'admin@lavanderia.com'
+                email: 'admin@lavanderia.com',
+                branchId: 1,
+                permissions: ['all']
+            },
+            {
+                id: 2,
+                username: 'manager',
+                password: 'manager123',
+                name: 'Gerente de Sucursal',
+                role: 'manager',
+                email: 'manager@lavanderia.com',
+                branchId: 1,
+                permissions: ['view_reports', 'manage_clients', 'manage_garments', 'view_billing']
+            },
+            {
+                id: 3,
+                username: 'operator',
+                password: 'operator123',
+                name: 'Operador de Recepción',
+                role: 'operator',
+                email: 'operator@lavanderia.com',
+                branchId: 1,
+                permissions: ['receive_garments', 'update_status', 'view_garments']
+            },
+            {
+                id: 4,
+                username: 'manager2',
+                password: 'manager123',
+                name: 'Gerente Sucursal 2',
+                role: 'manager',
+                email: 'manager2@lavanderia.com',
+                branchId: 2,
+                permissions: ['view_reports', 'manage_clients', 'manage_garments', 'view_billing']
             }
         ];
         
@@ -172,8 +204,40 @@ class Auth {
     }
 
     hasPermission(permission) {
-        // Solo hay rol admin, por lo que siempre tiene todos los permisos
-        return this.currentUser && this.currentUser.role === 'admin';
+        if (!this.currentUser) return false;
+        
+        // Admin tiene todos los permisos
+        if (this.currentUser.role === 'admin') return true;
+        
+        // Verificar permisos específicos del usuario
+        return this.currentUser.permissions && this.currentUser.permissions.includes(permission);
+    }
+
+    hasAnyRole(roles) {
+        return this.currentUser && roles.includes(this.currentUser.role);
+    }
+
+    canAccessBranch(branchId) {
+        if (!this.currentUser) return false;
+        
+        // Admin puede acceder a todas las sucursales
+        if (this.currentUser.role === 'admin') return true;
+        
+        // Otros roles solo pueden acceder a su sucursal asignada
+        return this.currentUser.branchId === branchId;
+    }
+
+    getAvailableBranches() {
+        if (!this.currentUser) return [];
+        
+        // Admin puede ver todas las sucursales
+        if (this.currentUser.role === 'admin') {
+            return Storage.getBranches();
+        }
+        
+        // Otros roles solo ven su sucursal
+        const userBranch = Storage.getBranchById(this.currentUser.branchId);
+        return userBranch ? [userBranch] : [];
     }
 
     // Métodos de seguridad

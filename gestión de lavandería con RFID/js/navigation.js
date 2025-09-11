@@ -45,6 +45,26 @@ class Navigation {
             title: 'Guías',
             icon: '📄',
             module: 'Guides'
+        },
+        'rfid-simulator': {
+            title: 'Simulador RFID',
+            icon: '🔍',
+            module: 'RFIDSimulator'
+        },
+        notifications: {
+            title: 'Notificaciones',
+            icon: '📧',
+            module: 'Notifications'
+        },
+        billing: {
+            title: 'Facturación',
+            icon: '💰',
+            module: 'Billing'
+        },
+        settings: {
+            title: 'Configuración',
+            icon: '⚙️',
+            module: 'Settings'
         }
     };
 

@@ -10,13 +10,52 @@ class Storage {
         GUIDES: 'laundry_guides',
         HISTORY: 'laundry_history',
         SETTINGS: 'laundry_settings',
-        COUNTERS: 'laundry_counters'
+        COUNTERS: 'laundry_counters',
+        BRANCHES: 'laundry_branches',
+        USERS: 'laundry_users',
+        PRICING: 'laundry_pricing',
+        INVOICES: 'laundry_invoices',
+        NOTIFICATIONS: 'laundry_notifications'
     };
 
     // Inicializar datos por defecto
     static initializeDefaultData() {
         console.log('🗄️ Inicializando datos por defecto...');
         
+        // Sucursales de ejemplo
+        const branches = [
+            {
+                id: 1,
+                name: 'Sucursal Centro',
+                address: 'Av. Principal 123, Centro',
+                phone: '555-0100',
+                email: 'centro@lavanderia.com',
+                manager: 'Gerente Centro',
+                isActive: true,
+                createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+                id: 2,
+                name: 'Sucursal Norte',
+                address: 'Calle Norte 456, Zona Norte',
+                phone: '555-0200',
+                email: 'norte@lavanderia.com',
+                manager: 'Gerente Norte',
+                isActive: true,
+                createdAt: '2024-01-01T00:00:00Z'
+            },
+            {
+                id: 3,
+                name: 'Sucursal Sur',
+                address: 'Av. Sur 789, Zona Sur',
+                phone: '555-0300',
+                email: 'sur@lavanderia.com',
+                manager: 'Gerente Sur',
+                isActive: true,
+                createdAt: '2024-01-01T00:00:00Z'
+            }
+        ];
+
         // Clientes de ejemplo
         const clients = [
             {
@@ -26,6 +65,7 @@ class Storage {
                 phone: '555-0001',
                 email: 'javier@email.com',
                 address: 'Av. Principal 123',
+                branchId: 1,
                 createdAt: '2024-01-15T10:00:00Z',
                 totalServices: 15,
                 rfidTags: ['RFID001', 'RFID002', 'RFID003']
@@ -37,9 +77,22 @@ class Storage {
                 phone: '555-0002',
                 email: 'maria@email.com',
                 address: 'Calle Segunda 456',
+                branchId: 1,
                 createdAt: '2024-02-01T14:30:00Z',
                 totalServices: 8,
                 rfidTags: ['RFID004', 'RFID005']
+            },
+            {
+                id: 3,
+                name: 'Carlos López',
+                cedula: '11223344',
+                phone: '555-0003',
+                email: 'carlos@email.com',
+                address: 'Calle Norte 789',
+                branchId: 2,
+                createdAt: '2024-02-15T09:00:00Z',
+                totalServices: 12,
+                rfidTags: ['RFID006', 'RFID007']
             }
         ];
 
@@ -49,6 +102,7 @@ class Storage {
                 id: 1,
                 rfidCode: 'RFID001',
                 clientId: 1,
+                branchId: 1,
                 type: 'Buzo',
                 color: 'Azul',
                 size: 'M',
@@ -58,12 +112,16 @@ class Storage {
                 deliveredAt: null,
                 notes: 'Lavado normal',
                 condition: 'bueno',
-                timesProcessed: 3
+                timesProcessed: 3,
+                serviceType: 'normal',
+                priority: 'normal',
+                price: 15.00
             },
             {
                 id: 2,
                 rfidCode: 'RFID002',
                 clientId: 1,
+                branchId: 1,
                 type: 'Camisa',
                 color: 'Blanco',
                 size: 'L',
@@ -75,12 +133,14 @@ class Storage {
                 condition: 'bueno',
                 timesProcessed: 1,
                 serviceType: 'normal',
-                priority: 'normal'
+                priority: 'normal',
+                price: 12.00
             },
             {
                 id: 3,
                 rfidCode: 'RFID003',
                 clientId: 2,
+                branchId: 1,
                 type: 'Pantalón',
                 color: 'Negro',
                 size: 'M',
@@ -92,7 +152,27 @@ class Storage {
                 condition: 'regular',
                 timesProcessed: 1,
                 serviceType: 'normal',
-                priority: 'normal'
+                priority: 'normal',
+                price: 18.00
+            },
+            {
+                id: 4,
+                rfidCode: 'RFID006',
+                clientId: 3,
+                branchId: 2,
+                type: 'Chaqueta',
+                color: 'Gris',
+                size: 'L',
+                status: 'recibido',
+                receivedAt: new Date().toISOString(),
+                processedAt: null,
+                deliveredAt: null,
+                notes: 'Lavado en seco',
+                condition: 'bueno',
+                timesProcessed: 1,
+                serviceType: 'delicado',
+                priority: 'normal',
+                price: 25.00
             }
         ];
 
@@ -105,23 +185,50 @@ class Storage {
         // Configuraciones del sistema
         const settings = {
             businessName: 'Lavandería RFID',
-            maxDaysInProcess: 7
+            maxDaysInProcess: 7,
+            taxRate: 0.19, // 19% IVA
+            currency: 'COP'
         };
+
+        // Precios por tipo de prenda
+        const pricing = {
+            'Camisa': { normal: 12.00, delicado: 18.00, urgente: 20.00 },
+            'Pantalón': { normal: 18.00, delicado: 25.00, urgente: 30.00 },
+            'Buzo': { normal: 15.00, delicado: 22.00, urgente: 25.00 },
+            'Chaqueta': { normal: 25.00, delicado: 35.00, urgente: 40.00 },
+            'Vestido': { normal: 20.00, delicado: 30.00, urgente: 35.00 },
+            'Abrigo': { normal: 30.00, delicado: 45.00, urgente: 50.00 },
+            'Falda': { normal: 10.00, delicado: 15.00, urgente: 18.00 },
+            'Blusa': { normal: 8.00, delicado: 12.00, urgente: 15.00 }
+        };
+
+        // Facturas de ejemplo
+        const invoices = [];
+
+        // Notificaciones de ejemplo
+        const notifications = [];
 
         // Contadores para IDs
         const counters = {
-            clients: 3,
-            garments: 4,
+            clients: 4,
+            garments: 5,
             guides: 1,
-            history: 1
+            history: 1,
+            branches: 4,
+            invoices: 1,
+            notifications: 1
         };
 
         // Guardar en localStorage
+        this.setData(this.KEYS.BRANCHES, branches);
         this.setData(this.KEYS.CLIENTS, clients);
         this.setData(this.KEYS.GARMENTS, garments);
         this.setData(this.KEYS.GUIDES, guides);
         this.setData(this.KEYS.HISTORY, history);
         this.setData(this.KEYS.SETTINGS, settings);
+        this.setData(this.KEYS.PRICING, pricing);
+        this.setData(this.KEYS.INVOICES, invoices);
+        this.setData(this.KEYS.NOTIFICATIONS, notifications);
         this.setData(this.KEYS.COUNTERS, counters);
 
         console.log('✅ Datos inicializados correctamente');
@@ -488,6 +595,114 @@ class Storage {
         });
         
         console.log('🔍 === FIN ESTADO STORAGE ===');
+    }
+
+    // Métodos para sucursales
+    static getBranches() {
+        return this.getData(this.KEYS.BRANCHES, []);
+    }
+
+    static getBranchById(id) {
+        const branches = this.getBranches();
+        return branches.find(branch => branch.id === parseInt(id));
+    }
+
+    static addBranch(branch) {
+        const branches = this.getBranches();
+        const counters = this.getCounters();
+        
+        branch.id = counters.branches++;
+        branch.createdAt = new Date().toISOString();
+        branch.isActive = true;
+        
+        branches.push(branch);
+        
+        this.setData(this.KEYS.BRANCHES, branches);
+        this.setCounters(counters);
+        
+        return branch;
+    }
+
+    // Métodos para precios
+    static getPricing() {
+        return this.getData(this.KEYS.PRICING, {});
+    }
+
+    static updatePricing(pricing) {
+        return this.setData(this.KEYS.PRICING, pricing);
+    }
+
+    static getPriceForGarment(type, serviceType = 'normal') {
+        const pricing = this.getPricing();
+        return pricing[type] && pricing[type][serviceType] ? pricing[type][serviceType] : 10.00;
+    }
+
+    // Métodos para facturas
+    static getInvoices() {
+        return this.getData(this.KEYS.INVOICES, []);
+    }
+
+    static addInvoice(invoice) {
+        const invoices = this.getInvoices();
+        const counters = this.getCounters();
+        
+        invoice.id = counters.invoices++;
+        invoice.createdAt = new Date().toISOString();
+        invoice.status = 'pendiente';
+        
+        invoices.push(invoice);
+        
+        this.setData(this.KEYS.INVOICES, invoices);
+        this.setCounters(counters);
+        
+        return invoice;
+    }
+
+    static getInvoiceById(id) {
+        const invoices = this.getInvoices();
+        return invoices.find(invoice => invoice.id === parseInt(id));
+    }
+
+    // Métodos para notificaciones
+    static getNotifications() {
+        return this.getData(this.KEYS.NOTIFICATIONS, []);
+    }
+
+    static addNotification(notification) {
+        const notifications = this.getNotifications();
+        const counters = this.getCounters();
+        
+        notification.id = counters.notifications++;
+        notification.createdAt = new Date().toISOString();
+        notification.status = 'enviada';
+        
+        notifications.push(notification);
+        
+        this.setData(this.KEYS.NOTIFICATIONS, notifications);
+        this.setCounters(counters);
+        
+        return notification;
+    }
+
+    static getNotificationsByClient(clientId) {
+        const notifications = this.getNotifications();
+        return notifications.filter(n => n.clientId === clientId);
+    }
+
+    // Métodos para filtrado por sucursal
+    static getClientsByBranch(branchId) {
+        const clients = this.getClients();
+        return clients.filter(client => client.branchId === branchId);
+    }
+
+    static getGarmentsByBranch(branchId) {
+        const garments = this.getGarments();
+        return garments.filter(garment => garment.branchId === branchId);
+    }
+
+    static getInvoicesByBranch(branchId) {
+        const invoices = this.getInvoices();
+        return invoices.filter(invoice => invoice.branchId === branchId);
     }
 }
 

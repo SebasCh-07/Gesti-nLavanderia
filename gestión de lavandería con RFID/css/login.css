@@ -152,6 +152,60 @@
     font-family: 'Courier New', monospace;
 }
 
+.credentials-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.credential-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.credential-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.credential-item.admin {
+    border-left: 4px solid #e53e3e;
+}
+
+.credential-item.manager {
+    border-left: 4px solid #3182ce;
+}
+
+.credential-item.operator {
+    border-left: 4px solid #38a169;
+}
+
+.credential-item h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.credential-item p {
+    margin: 0.2rem 0;
+    font-size: 0.75rem;
+    color: #4a5568;
+}
+
+.credential-item small {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: #718096;
+    font-style: italic;
+}
+
 .error-message {
     background: #fed7d7;
     color: #c53030;

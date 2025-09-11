@@ -38,6 +38,19 @@ class LaundryApp {
         // Configurar eventos globales
         this.setupGlobalEvents();
         
+        // Inicializar módulos adicionales
+        if (typeof Notifications !== 'undefined') {
+            Notifications.init();
+        }
+        
+        // Inicializar notificaciones PWA
+        if (typeof PWANotifications !== 'undefined') {
+            PWANotifications.init().then(() => {
+                // Iniciar notificaciones automáticas para demo
+                PWANotifications.startAutomaticNotifications();
+            });
+        }
+        
         console.log('📱 Sistema de Lavandería RFID iniciado - SIN LOGIN');
     }
 
@@ -120,6 +133,9 @@ class LaundryApp {
         
         // Actualizar información del usuario
         this.updateUserInfo();
+        
+        // Inicializar selector de sucursal
+        this.initializeBranchSelector();
         
         // Cargar dashboard inicial
         setTimeout(() => {
@@ -405,7 +421,36 @@ class LaundryApp {
                 }
             });
             
-            console.log('✅ Menú móvil inicializado');
+            // Cerrar al cambiar orientación en móvil
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    if (sidebar.classList.contains('active')) {
+                        sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        overlay.style.transition = 'opacity 0.3s ease';
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
+                }, 100);
+            });
+            
+            // Cerrar al redimensionar ventana
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
+                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    overlay.style.transition = 'opacity 0.3s ease';
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
+            });
+            
+            // Mejorar accesibilidad táctil
+            mobileMenuBtn.style.minHeight = '44px';
+            mobileMenuBtn.style.minWidth = '44px';
+            mobileMenuBtn.style.display = 'flex';
+            mobileMenuBtn.style.alignItems = 'center';
+            mobileMenuBtn.style.justifyContent = 'center';
+            
+            console.log('✅ Menú móvil inicializado con mejoras de accesibilidad');
         }
     }
 
@@ -538,9 +583,76 @@ class LaundryApp {
         if (this.currentUser) {
             if (userNameEl) userNameEl.textContent = this.currentUser.name;
             if (userRoleEl) {
-                userRoleEl.textContent = 'Administrador del Sistema';
+                const roleText = this.getRoleDisplayText(this.currentUser.role);
+                const branch = Storage.getBranchById(this.currentUser.branchId);
+                const branchText = branch ? ` - ${branch.name}` : '';
+                userRoleEl.textContent = `${roleText}${branchText}`;
             }
         }
+    }
+
+    getRoleDisplayText(role) {
+        const roleTexts = {
+            'admin': 'Administrador',
+            'manager': 'Gerente',
+            'operator': 'Operador'
+        };
+        return roleTexts[role] || role;
+    }
+
+    // Métodos para manejo de sucursales
+    initializeBranchSelector() {
+        const branchSelector = document.getElementById('branch-selector');
+        const branchSelect = document.getElementById('current-branch');
+        
+        if (!this.currentUser) return;
+        
+        const availableBranches = this.auth.getAvailableBranches();
+        
+        if (availableBranches.length > 1) {
+            // Mostrar selector solo si hay múltiples sucursales disponibles
+            branchSelector.style.display = 'block';
+            
+            // Limpiar opciones existentes
+            branchSelect.innerHTML = '<option value="">Seleccionar sucursal...</option>';
+            
+            // Agregar opciones de sucursales
+            availableBranches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch.id;
+                option.textContent = branch.name;
+                if (branch.id === this.currentUser.branchId) {
+                    option.selected = true;
+                }
+                branchSelect.appendChild(option);
+            });
+        } else if (availableBranches.length === 1) {
+            // Si solo hay una sucursal, establecerla automáticamente
+            this.currentBranchId = availableBranches[0].id;
+            branchSelector.style.display = 'none';
+        }
+    }
+
+    changeBranch(branchId) {
+        if (!branchId) return;
+        
+        // Verificar que el usuario puede acceder a esta sucursal
+        if (!this.auth.canAccessBranch(parseInt(branchId))) {
+            app.showErrorMessage('No tiene permisos para acceder a esta sucursal');
+            return;
+        }
+        
+        this.currentBranchId = parseInt(branchId);
+        app.showSuccessMessage(`Sucursal cambiada a: ${Storage.getBranchById(branchId).name}`);
+        
+        // Recargar la página actual con el nuevo filtro de sucursal
+        if (typeof Navigation !== 'undefined' && Navigation.getCurrentPage) {
+            Navigation.loadPage(Navigation.getCurrentPage());
+        }
+    }
+
+    getCurrentBranchId() {
+        return this.currentBranchId || (this.currentUser ? this.currentUser.branchId : null);
     }
 
 }
