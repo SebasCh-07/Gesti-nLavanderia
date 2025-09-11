@@ -301,6 +301,7 @@ class Navigation {
         this.loadPage(this.currentPage);
     }
 
+
     // Navegación programática
     static navigateTo(page, params = {}) {
         if (this.pages[page]) {

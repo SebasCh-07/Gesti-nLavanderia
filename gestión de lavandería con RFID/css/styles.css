@@ -1827,6 +1827,175 @@ body {
     color: #991b1b;
 }
 
+/* Estilos para pantalla de confirmación de recepción */
+.confirmation-banner {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.confirmation-banner h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.confirmation-banner p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.confirmation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.client-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-item .label {
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.detail-item .value {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.garment-summary {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3b82f6;
+    margin-bottom: 5px;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-delicado {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-normal {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-urgente {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.service-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.service-options-grid .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.confirmation-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    padding: 20px 0;
+}
+
+.confirmation-actions .btn {
+    min-width: 200px;
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Responsive para pantalla de confirmación */
+@media (max-width: 768px) {
+    .confirmation-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .service-options-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .confirmation-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .confirmation-actions .btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .garment-summary {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .summary-number {
+        font-size: 1.5rem;
+    }
+}
+
 /* Ajustes para pantallas de altura reducida */
 @media (max-height: 700px) {
     .sidebar-header {

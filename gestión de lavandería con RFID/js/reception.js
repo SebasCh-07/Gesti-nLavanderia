@@ -11,11 +11,49 @@ class Reception {
 
     static async render() {
         const params = Navigation.getPageParams('reception');
+        console.log('Parámetros recibidos en reception:', params);
         
-        if (params.selectedClient) {
-            this.selectedClient = Storage.getClientById(params.selectedClient);
-            this.currentStep = 2;
+        // Restaurar estado desde sessionStorage si no hay cliente seleccionado
+        if (!this.selectedClient) {
+            const savedClientId = sessionStorage.getItem('reception_selected_client_id');
+            const savedGarments = sessionStorage.getItem('reception_scanned_garments');
+            
+            if (savedClientId) {
+                this.selectedClient = Storage.getClientById(parseInt(savedClientId));
+                console.log('Cliente restaurado desde sessionStorage:', this.selectedClient?.name);
+            }
+            
+            if (savedGarments) {
+                try {
+                    this.scannedGarments = JSON.parse(savedGarments);
+                    console.log('Prendas restauradas desde sessionStorage:', this.scannedGarments.length);
+                } catch (error) {
+                    console.error('Error restaurando prendas:', error);
+                    this.scannedGarments = [];
+                }
+            }
         }
+        
+        // Establecer cliente si viene como parámetro (solo si no hay cliente ya seleccionado)
+        if (params.selectedClient && !this.selectedClient) {
+            this.selectedClient = Storage.getClientById(params.selectedClient);
+            console.log('Cliente seleccionado desde parámetros:', this.selectedClient?.name, 'ID:', params.selectedClient);
+            
+            // Guardar en sessionStorage
+            sessionStorage.setItem('reception_selected_client_id', this.selectedClient.id.toString());
+            
+            // Si no hay prendas escaneadas, ir al paso 2
+            if (this.scannedGarments.length === 0) {
+                this.currentStep = 2;
+                console.log('Navegando al paso 2 - Registro de prendas');
+            }
+        } else if (!params.selectedClient && !this.selectedClient) {
+            console.log('No hay parámetros de cliente seleccionado');
+        } else {
+            console.log('Cliente ya seleccionado:', this.selectedClient?.name);
+        }
+        
+        console.log('Estado final - Cliente:', this.selectedClient?.name, 'Paso:', this.currentStep, 'Prendas:', this.scannedGarments.length);
 
         return `
             <div class="page-header">
@@ -238,63 +276,76 @@ class Reception {
         const totalItems = this.scannedGarments.length;
         const estimatedTime = this.calculateEstimatedTime();
         
+        console.log('Renderizando confirmación - Cliente:', this.selectedClient?.name, 'Prendas:', totalItems);
+        
         // Validar que tenemos cliente y prendas
         if (!this.selectedClient) {
-            console.error('No hay cliente seleccionado para confirmación');
+            console.error('No hay cliente seleccionado para confirmación - Redirigiendo a selección de cliente');
+            this.currentStep = 1;
             return this.renderClientSelection();
         }
         
         if (totalItems === 0) {
-            console.error('No hay prendas escaneadas para confirmación');
+            console.error('No hay prendas escaneadas para confirmación - Redirigiendo a escaneo de prendas');
+            this.currentStep = 2;
             return this.renderGarmentScanning();
         }
 
         return `
             <div class="confirmation-content">
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <h3 class="card-title">Confirmar Recepción</h3>
-                        <p class="card-subtitle">Revisa los detalles antes de confirmar</p>
-                    </div>
+                <!-- Banner principal -->
+                <div class="confirmation-banner">
+                    <h2>Confirmar Recepción</h2>
+                    <p>Revisa los detalles antes de confirmar</p>
+                </div>
 
-                    <!-- Resumen de recepción -->
-                    <div class="reception-summary">
-                        <div class="summary-section">
-                            <h4>📋 Información del Cliente</h4>
-                            <div class="summary-details">
-                                <div class="detail-row">
-                                    <span>Nombre:</span>
-                                    <span>${this.selectedClient.name}</span>
+                <!-- Contenido en dos columnas -->
+                <div class="confirmation-grid">
+                    <!-- Información del Cliente -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Información del Cliente</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="client-details">
+                                <div class="detail-item">
+                                    <span class="label">Nombre:</span>
+                                    <span class="value">${this.selectedClient.name}</span>
                                 </div>
-                                <div class="detail-row">
-                                    <span>Cédula:</span>
-                                    <span>${this.selectedClient.cedula}</span>
+                                <div class="detail-item">
+                                    <span class="label">Cédula:</span>
+                                    <span class="value">${this.selectedClient.cedula}</span>
                                 </div>
-                                <div class="detail-row">
-                                    <span>Teléfono:</span>
-                                    <span>${this.selectedClient.phone}</span>
+                                <div class="detail-item">
+                                    <span class="label">Teléfono:</span>
+                                    <span class="value">${this.selectedClient.phone}</span>
                                 </div>
-                                <div class="detail-row">
-                                    <span>Servicios Anteriores:</span>
-                                    <span>${this.selectedClient.totalServices || 0}</span>
+                                <div class="detail-item">
+                                    <span class="label">Servicios Anteriores:</span>
+                                    <span class="value">${this.selectedClient.totalServices || 0}</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="summary-section">
-                            <h4>👔 Resumen de Prendas</h4>
-                            <div class="summary-stats">
-                                <div class="stat-box">
-                                    <div class="stat-number">${totalItems}</div>
-                                    <div class="stat-label">Total de Prendas</div>
+                    <!-- Resumen de Prendas -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Resumen de Prendas</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="garment-summary">
+                                <div class="summary-item">
+                                    <div class="summary-number">${totalItems}</div>
+                                    <div class="summary-label">Total de Prendas</div>
                                 </div>
-                                <div class="stat-box">
-                                    <div class="stat-number">${this.getUniqueTypes().length}</div>
-                                    <div class="stat-label">Tipos Diferentes</div>
+                                <div class="summary-item">
+                                    <div class="summary-number">${this.getUniqueTypes().length}</div>
+                                    <div class="summary-label">Tipos Diferentes</div>
                                 </div>
-                                <div class="stat-box">
-                                    <div class="stat-number">${estimatedTime}</div>
-                                    <div class="stat-label">Días Estimados</div>
+                                <div class="summary-item">
+                                    <div class="summary-number">${estimatedTime}</div>
+                                    <div class="summary-label">Días Estimados</div>
                                 </div>
                             </div>
                         </div>
@@ -302,7 +353,7 @@ class Reception {
                 </div>
 
                 <!-- Detalle de prendas -->
-                <div class="card mb-2">
+                <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Detalle de Prendas</h3>
                     </div>
@@ -311,12 +362,12 @@ class Reception {
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Código RFID</th>
-                                    <th>Tipo</th>
-                                    <th>Color</th>
-                                    <th>Talla</th>
-                                    <th>Estado</th>
-                                    <th>Notas</th>
+                                    <th>CÓDIGO RFID</th>
+                                    <th>TIPO</th>
+                                    <th>COLOR</th>
+                                    <th>TALLA</th>
+                                    <th>ESTADO</th>
+                                    <th>NOTAS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -326,7 +377,7 @@ class Reception {
                                         <td>${garment.type}</td>
                                         <td>${garment.color}</td>
                                         <td>${garment.size}</td>
-                                        <td><span class="badge badge-info">${garment.condition}</span></td>
+                                        <td><span class="status-badge status-${garment.condition.toLowerCase().replace(' ', '-')}">${garment.condition}</span></td>
                                         <td>${garment.notes || '-'}</td>
                                     </tr>
                                 `).join('')}
@@ -335,45 +386,47 @@ class Reception {
                     </div>
                 </div>
 
-                <!-- Opciones adicionales -->
-                <div class="card mb-2">
+                <!-- Opciones de Servicio -->
+                <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Opciones de Servicio</h3>
                     </div>
                     
-                    <div class="service-options">
-                        <div class="form-group">
-                            <label class="form-label">Tipo de Servicio:</label>
-                            <select id="service-type" class="form-control">
-                                <option value="normal">Lavado Normal</option>
-                                <option value="express">Servicio Express (+1 día)</option>
-                                <option value="delicate">Prendas Delicadas (+2 días)</option>
-                                <option value="dry-clean">Lavado en Seco (+3 días)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Prioridad:</label>
-                            <select id="priority" class="form-control">
-                                <option value="normal">Normal</option>
-                                <option value="alta">Alta</option>
-                                <option value="urgente">Urgente</option>
-                            </select>
-                        </div>
+                    <div class="card-body">
+                        <div class="service-options-grid">
+                            <div class="form-group">
+                                <label class="form-label">Tipo de Servicio:</label>
+                                <select id="service-type" class="form-control">
+                                    <option value="normal" selected>Lavado Normal</option>
+                                    <option value="express">Servicio Express (+1 día)</option>
+                                    <option value="delicate">Prendas Delicadas (+2 días)</option>
+                                    <option value="dry-clean">Lavado en Seco (+3 días)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Prioridad:</label>
+                                <select id="priority" class="form-control">
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Notas Adicionales:</label>
-                            <textarea id="reception-notes" 
-                                      class="form-control" 
-                                      rows="3" 
-                                      placeholder="Instrucciones especiales, observaciones, etc."></textarea>
+                            <div class="form-group full-width">
+                                <label class="form-label">Notas Adicionales:</label>
+                                <textarea id="reception-notes" 
+                                          class="form-control" 
+                                          rows="3" 
+                                          placeholder="Instrucciones especiales, observaciones, etc."></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Acciones finales -->
-                <div class="final-actions">
-                    <button class="btn btn-secondary" onclick="Reception.previousStep()">
+                <div class="confirmation-actions">
+                    <button class="btn btn-secondary btn-lg" onclick="Reception.previousStep()">
                         ← Modificar Prendas
                     </button>
                     <button class="btn btn-success btn-lg" onclick="Reception.confirmReception()" id="confirm-reception-btn">
@@ -1111,19 +1164,11 @@ class Reception {
         `;
         continueBtn.innerHTML = `✅ Continuar (${this.scannedGarments.length} prendas)`;
         continueBtn.onclick = () => {
-            console.log('Botón continuar presionado - Cambiando a confirmación');
+            console.log('Botón continuar presionado - Navegando directamente a confirmación');
             this.hideActionButtons();
             
-            // Cambiar al paso 3 (confirmación)
-            this.currentStep = 3;
-            this.refreshContent();
-            
-            // Mostrar mensaje adicional en la pantalla de confirmación
-            setTimeout(() => {
-                app.showSuccessMessage('Revisa los detalles y confirma la recepción');
-            }, 500);
-            
-            console.log('Pasando a confirmación - Paso actual:', this.currentStep);
+            // Navegar directamente a la pantalla de confirmación
+            this.goToConfirmation();
         };
         
         // Agregar botones al contenedor
@@ -1149,6 +1194,76 @@ class Reception {
                 }
             }, 300);
         }
+    }
+
+    static goToConfirmation() {
+        console.log('Navegando directamente a confirmación...');
+        console.log('Estado antes de confirmación - Cliente:', this.selectedClient?.name, 'Prendas:', this.scannedGarments.length);
+        
+        // Intentar restaurar cliente desde sessionStorage si no está disponible
+        if (!this.selectedClient) {
+            const savedClientId = sessionStorage.getItem('reception_selected_client_id');
+            if (savedClientId) {
+                this.selectedClient = Storage.getClientById(parseInt(savedClientId));
+                console.log('Cliente restaurado desde sessionStorage:', this.selectedClient?.name);
+            }
+        }
+        
+        // Validar que tenemos los datos necesarios
+        if (!this.selectedClient) {
+            console.error('No hay cliente seleccionado');
+            console.log('Cliente actual:', this.selectedClient);
+            app.showErrorMessage('Error: No hay cliente seleccionado');
+            return;
+        }
+        
+        if (this.scannedGarments.length === 0) {
+            console.error('No hay prendas escaneadas');
+            console.log('Prendas actuales:', this.scannedGarments);
+            app.showErrorMessage('Error: No hay prendas escaneadas');
+            return;
+        }
+        
+        // Guardar estado en sessionStorage para preservarlo
+        sessionStorage.setItem('reception_selected_client_id', this.selectedClient.id.toString());
+        sessionStorage.setItem('reception_scanned_garments', JSON.stringify(this.scannedGarments));
+        
+        // Establecer paso 3
+        this.currentStep = 3;
+        console.log('Paso establecido a 3');
+        
+        // Usar refreshContent en lugar de Navigation.loadPage para preservar el estado
+        console.log('Actualizando contenido sin reiniciar módulo');
+        this.refreshContent();
+        
+        // Mostrar mensaje de éxito
+        setTimeout(() => {
+            app.showSuccessMessage('Revisa los detalles y confirma la recepción');
+        }, 500);
+        
+        console.log('Navegación a confirmación completada');
+    }
+
+    // Método de debug para verificar estado
+    static debugState() {
+        console.log('=== DEBUG ESTADO RECEPCIÓN ===');
+        console.log('Cliente seleccionado:', this.selectedClient);
+        console.log('Paso actual:', this.currentStep);
+        console.log('Prendas escaneadas:', this.scannedGarments.length);
+        console.log('Parámetros de navegación:', Navigation.getPageParams('reception'));
+        console.log('SessionStorage cliente:', sessionStorage.getItem('reception_selected_client_id'));
+        console.log('SessionStorage prendas:', sessionStorage.getItem('reception_scanned_garments'));
+        console.log('================================');
+    }
+
+    // Limpiar estado de recepción
+    static clearReceptionState() {
+        this.selectedClient = null;
+        this.scannedGarments = [];
+        this.currentStep = 1;
+        sessionStorage.removeItem('reception_selected_client_id');
+        sessionStorage.removeItem('reception_scanned_garments');
+        console.log('Estado de recepción limpiado');
     }
 
     static refreshGarmentsList() {
@@ -1610,5 +1725,23 @@ class Reception {
 
 // Exponer la clase globalmente
 window.Reception = Reception;
+
+// Exponer métodos globalmente
+window.debugReception = () => Reception.debugState();
+window.clearReceptionState = () => Reception.clearReceptionState();
+
+// Función de emergencia para forzar restauración de cliente
+window.forceRestoreClient = () => {
+    const savedClientId = sessionStorage.getItem('reception_selected_client_id');
+    if (savedClientId) {
+        Reception.selectedClient = Storage.getClientById(parseInt(savedClientId));
+        console.log('Cliente restaurado forzadamente:', Reception.selectedClient?.name);
+        Reception.refreshContent();
+        return true;
+    } else {
+        console.log('No hay cliente guardado en sessionStorage');
+        return false;
+    }
+};
 
 
