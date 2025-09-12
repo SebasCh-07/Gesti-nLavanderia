@@ -382,7 +382,7 @@ class Guides {
                                 <span>${guide.totalItems}</span>
                             </div>
                             <div class="detail-item">
-                                <span>Operador:</span>
+                                <span>Usuario:</span>
                                 <span>${app.currentUser?.name || 'Sistema'}</span>
                             </div>
                         </div>

@@ -24,15 +24,6 @@ class Notifications {
                 body: 'Hola {client_name}, sus prendas están tomando más tiempo. Nos disculpamos por la demora. Lavandería RFID.'
             }
         },
-        'payment_reminder': {
-            email: {
-                subject: 'Recordatorio de pago pendiente',
-                body: 'Estimado/a {client_name}, le recordamos que tiene un pago pendiente de ${amount} por la factura #{invoice_id}. Puede realizar el pago en nuestra sucursal.'
-            },
-            sms: {
-                body: 'Hola {client_name}, tiene un pago pendiente de ${amount} (Factura #{invoice_id}). Lavandería RFID.'
-            }
-        }
     };
 
     static async render() {
@@ -122,8 +113,6 @@ class Notifications {
                         <span class="variable-tag">{client_phone}</span>
                         <span class="variable-tag">{branch_name}</span>
                         <span class="variable-tag">{garment_count}</span>
-                        <span class="variable-tag">{amount}</span>
-                        <span class="variable-tag">{invoice_id}</span>
                     </div>
                 </div>
 
@@ -176,15 +165,6 @@ class Notifications {
                     </div>
                 </div>
 
-                <div class="template-card" onclick="Notifications.useTemplate('payment_reminder')">
-                    <div class="template-icon">💰</div>
-                    <div class="template-title">Recordatorio de Pago</div>
-                    <div class="template-description">Recordar pago pendiente de factura</div>
-                    <div class="template-types">
-                        <span class="type-badge email">📧</span>
-                        <span class="type-badge sms">📱</span>
-                    </div>
-                </div>
 
                 <div class="template-card" onclick="Notifications.sendBulkNotification()">
                     <div class="template-icon">📢</div>
@@ -328,17 +308,13 @@ class Notifications {
         const branch = Storage.getBranchById(client.branchId);
         const clientGarments = Storage.getGarmentsByClient(client.id);
         const readyGarments = clientGarments.filter(g => g.status === 'listo');
-        const pendingInvoices = Storage.getInvoices().filter(i => 
-            i.clientId === client.id && i.status === 'pendiente'
-        );
+        // Sistema de facturación removido - no hay facturas pendientes
 
         return text
             .replace(/{client_name}/g, client.name)
             .replace(/{client_phone}/g, client.phone)
             .replace(/{branch_name}/g, branch ? branch.name : 'Sucursal')
             .replace(/{garment_count}/g, readyGarments.length.toString())
-            .replace(/{amount}/g, pendingInvoices.length > 0 ? pendingInvoices[0].total.toFixed(2) : '0.00')
-            .replace(/{invoice_id}/g, pendingInvoices.length > 0 ? pendingInvoices[0].id.toString() : 'N/A');
     }
 
     static simulateNotificationSending(type, client, subject, message) {
@@ -1137,3 +1113,4 @@ class Notifications {
 
 // Exponer la clase globalmente
 window.Notifications = Notifications;
+

@@ -326,7 +326,7 @@ class History {
                                 <span>${client ? client.name : 'No encontrado'}</span>
                             </div>
                             <div class="detail-item">
-                                <span>Operador:</span>
+                                <span>Usuario:</span>
                                 <span>${entry.operator}</span>
                             </div>
                             <div class="detail-item">
@@ -375,7 +375,7 @@ class History {
     }
 
     static generateHistoryCSV(history) {
-        const headers = ['Fecha', 'Hora', 'Acción', 'Cliente', 'Operador', 'Detalles', 'Prendas'];
+        const headers = ['Fecha', 'Hora', 'Acción', 'Cliente', 'Usuario', 'Detalles', 'Prendas'];
         
         const rows = history.map(entry => {
             const client = Storage.getClientById(entry.clientId);

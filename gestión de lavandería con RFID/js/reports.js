@@ -716,12 +716,10 @@ class Reports {
         const branches = Storage.getBranches();
         const garments = Storage.getGarments();
         const clients = Storage.getClients();
-        const invoices = Storage.getInvoices();
 
         return branches.map(branch => {
             const branchGarments = garments.filter(g => g.branchId === branch.id);
             const branchClients = clients.filter(c => c.branchId === branch.id);
-            const branchInvoices = invoices.filter(i => i.branchId === branch.id);
 
             const processedGarments = branchGarments.filter(g => g.deliveredAt);
             const avgTime = processedGarments.length > 0 ? 
@@ -740,8 +738,8 @@ class Reports {
                 return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
             }).length;
 
-            // Calcular ingresos estimados
-            const estimatedRevenue = branchInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+            // Calcular ingresos estimados (removido - sin facturación)
+            const estimatedRevenue = 0;
 
             // Determinar estado de la sucursal
             let status = 'good';

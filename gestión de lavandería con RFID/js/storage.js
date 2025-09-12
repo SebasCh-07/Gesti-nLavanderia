@@ -13,9 +13,8 @@ class Storage {
         COUNTERS: 'laundry_counters',
         BRANCHES: 'laundry_branches',
         USERS: 'laundry_users',
-        PRICING: 'laundry_pricing',
-        INVOICES: 'laundry_invoices',
-        NOTIFICATIONS: 'laundry_notifications'
+        NOTIFICATIONS: 'laundry_notifications',
+        BATCHES: 'laundry_batches'
     };
 
     // Inicializar datos por defecto
@@ -30,7 +29,7 @@ class Storage {
                 address: 'Av. Principal 123, Centro',
                 phone: '555-0100',
                 email: 'centro@lavanderia.com',
-                manager: 'Gerente Centro',
+                manager: 'Administrador',
                 isActive: true,
                 createdAt: '2024-01-01T00:00:00Z'
             },
@@ -40,7 +39,7 @@ class Storage {
                 address: 'Calle Norte 456, Zona Norte',
                 phone: '555-0200',
                 email: 'norte@lavanderia.com',
-                manager: 'Gerente Norte',
+                manager: 'Administrador',
                 isActive: true,
                 createdAt: '2024-01-01T00:00:00Z'
             },
@@ -50,7 +49,7 @@ class Storage {
                 address: 'Av. Sur 789, Zona Sur',
                 phone: '555-0300',
                 email: 'sur@lavanderia.com',
-                manager: 'Gerente Sur',
+                manager: 'Administrador',
                 isActive: true,
                 createdAt: '2024-01-01T00:00:00Z'
             }
@@ -114,8 +113,7 @@ class Storage {
                 condition: 'bueno',
                 timesProcessed: 3,
                 serviceType: 'normal',
-                priority: 'normal',
-                price: 15.00
+                priority: 'normal'
             },
             {
                 id: 2,
@@ -133,8 +131,7 @@ class Storage {
                 condition: 'bueno',
                 timesProcessed: 1,
                 serviceType: 'normal',
-                priority: 'normal',
-                price: 12.00
+                priority: 'normal'
             },
             {
                 id: 3,
@@ -152,8 +149,7 @@ class Storage {
                 condition: 'regular',
                 timesProcessed: 1,
                 serviceType: 'normal',
-                priority: 'normal',
-                price: 18.00
+                priority: 'normal'
             },
             {
                 id: 4,
@@ -171,8 +167,30 @@ class Storage {
                 condition: 'bueno',
                 timesProcessed: 1,
                 serviceType: 'delicado',
+                priority: 'normal'
+            }
+        ];
+
+        // Lotes de ejemplo
+        const batches = [
+            {
+                id: 1,
+                batchNumber: 'LOTE-001-2024',
+                clientId: 1,
+                branchId: 1,
+                name: 'Lote de Javier Rodríguez',
+                description: 'Lote de 15 prendas - Lavado normal',
+                status: 'recibido',
+                garmentIds: [1, 2], // IDs de las prendas en este lote
+                totalGarments: 2,
+                expectedGarments: 15,
+                createdAt: '2024-09-08T08:00:00Z',
+                receivedAt: '2024-09-08T08:00:00Z',
+                processedAt: null,
+                deliveredAt: null,
+                notes: 'Lote parcial - pendiente completar',
                 priority: 'normal',
-                price: 25.00
+                serviceType: 'normal'
             }
         ];
 
@@ -190,20 +208,6 @@ class Storage {
             currency: 'COP'
         };
 
-        // Precios por tipo de prenda
-        const pricing = {
-            'Camisa': { normal: 12.00, delicado: 18.00, urgente: 20.00 },
-            'Pantalón': { normal: 18.00, delicado: 25.00, urgente: 30.00 },
-            'Buzo': { normal: 15.00, delicado: 22.00, urgente: 25.00 },
-            'Chaqueta': { normal: 25.00, delicado: 35.00, urgente: 40.00 },
-            'Vestido': { normal: 20.00, delicado: 30.00, urgente: 35.00 },
-            'Abrigo': { normal: 30.00, delicado: 45.00, urgente: 50.00 },
-            'Falda': { normal: 10.00, delicado: 15.00, urgente: 18.00 },
-            'Blusa': { normal: 8.00, delicado: 12.00, urgente: 15.00 }
-        };
-
-        // Facturas de ejemplo
-        const invoices = [];
 
         // Notificaciones de ejemplo
         const notifications = [];
@@ -215,19 +219,18 @@ class Storage {
             guides: 1,
             history: 1,
             branches: 4,
-            invoices: 1,
-            notifications: 1
+            notifications: 1,
+            batches: 2
         };
 
         // Guardar en localStorage
         this.setData(this.KEYS.BRANCHES, branches);
         this.setData(this.KEYS.CLIENTS, clients);
+        this.setData(this.KEYS.BATCHES, batches);
         this.setData(this.KEYS.GARMENTS, garments);
         this.setData(this.KEYS.GUIDES, guides);
         this.setData(this.KEYS.HISTORY, history);
         this.setData(this.KEYS.SETTINGS, settings);
-        this.setData(this.KEYS.PRICING, pricing);
-        this.setData(this.KEYS.INVOICES, invoices);
         this.setData(this.KEYS.NOTIFICATIONS, notifications);
         this.setData(this.KEYS.COUNTERS, counters);
 
@@ -458,6 +461,7 @@ class Storage {
         const clients = this.getClients();
         const garments = this.getGarments();
         const guides = this.getGuides();
+        const batches = this.getBatches();
         
         return {
             totalClients: clients.length,
@@ -467,7 +471,11 @@ class Storage {
             garmentsReady: garments.filter(g => g.status === 'listo').length,
             garmentsDelivered: garments.filter(g => g.status === 'entregado').length,
             activeGuides: guides.filter(g => g.status === 'activa').length,
-            completedGuides: guides.filter(g => g.status === 'completada').length
+            completedGuides: guides.filter(g => g.status === 'completada').length,
+            totalBatches: batches.length,
+            completedBatches: batches.filter(b => b.totalGarments >= b.expectedGarments).length,
+            inProgressBatches: batches.filter(b => b.totalGarments < b.expectedGarments && b.totalGarments > 0).length,
+            emptyBatches: batches.filter(b => b.totalGarments === 0).length
         };
     }
 
@@ -623,45 +631,6 @@ class Storage {
         return branch;
     }
 
-    // Métodos para precios
-    static getPricing() {
-        return this.getData(this.KEYS.PRICING, {});
-    }
-
-    static updatePricing(pricing) {
-        return this.setData(this.KEYS.PRICING, pricing);
-    }
-
-    static getPriceForGarment(type, serviceType = 'normal') {
-        const pricing = this.getPricing();
-        return pricing[type] && pricing[type][serviceType] ? pricing[type][serviceType] : 10.00;
-    }
-
-    // Métodos para facturas
-    static getInvoices() {
-        return this.getData(this.KEYS.INVOICES, []);
-    }
-
-    static addInvoice(invoice) {
-        const invoices = this.getInvoices();
-        const counters = this.getCounters();
-        
-        invoice.id = counters.invoices++;
-        invoice.createdAt = new Date().toISOString();
-        invoice.status = 'pendiente';
-        
-        invoices.push(invoice);
-        
-        this.setData(this.KEYS.INVOICES, invoices);
-        this.setCounters(counters);
-        
-        return invoice;
-    }
-
-    static getInvoiceById(id) {
-        const invoices = this.getInvoices();
-        return invoices.find(invoice => invoice.id === parseInt(id));
-    }
 
     // Métodos para notificaciones
     static getNotifications() {
@@ -700,9 +669,193 @@ class Storage {
         return garments.filter(garment => garment.branchId === branchId);
     }
 
-    static getInvoicesByBranch(branchId) {
-        const invoices = this.getInvoices();
-        return invoices.filter(invoice => invoice.branchId === branchId);
+
+    // ===== MÉTODOS PARA GESTIÓN DE LOTES =====
+
+    static getBatches() {
+        return this.getData(this.KEYS.BATCHES) || [];
+    }
+
+    static getBatchById(id) {
+        const batches = this.getBatches();
+        return batches.find(batch => batch.id === id);
+    }
+
+    static getBatchesByClient(clientId) {
+        const batches = this.getBatches();
+        return batches.filter(batch => batch.clientId === clientId);
+    }
+
+    static getBatchesByBranch(branchId) {
+        const batches = this.getBatches();
+        return batches.filter(batch => batch.branchId === branchId);
+    }
+
+    static createBatch(batchData) {
+        const batches = this.getBatches();
+        const counters = this.getCounters();
+        
+        const newBatch = {
+            ...batchData,
+            id: counters.batches++,
+            batchNumber: this.generateBatchNumber(),
+            createdAt: new Date().toISOString(),
+            receivedAt: new Date().toISOString(),
+            garmentIds: [],
+            totalGarments: 0,
+            status: 'recibido'
+        };
+        
+        batches.push(newBatch);
+        
+        this.setData(this.KEYS.BATCHES, batches);
+        this.setCounters(counters);
+        
+        // Agregar al historial
+        this.addHistoryEntry({
+            action: 'create_batch',
+            clientId: newBatch.clientId,
+            operator: app.auth.getCurrentUser()?.name || 'Sistema',
+            details: `Lote creado: ${newBatch.batchNumber}`,
+            garmentIds: []
+        });
+        
+        return newBatch;
+    }
+
+    static updateBatch(id, updateData) {
+        const batches = this.getBatches();
+        const batchIndex = batches.findIndex(batch => batch.id === id);
+        
+        if (batchIndex === -1) return null;
+        
+        const oldBatch = { ...batches[batchIndex] };
+        batches[batchIndex] = { ...batches[batchIndex], ...updateData };
+        
+        this.setData(this.KEYS.BATCHES, batches);
+        
+        // Agregar al historial
+        this.addHistoryEntry({
+            action: 'update_batch',
+            clientId: batches[batchIndex].clientId,
+            operator: app.auth.getCurrentUser()?.name || 'Sistema',
+            details: `Lote actualizado: ${batches[batchIndex].batchNumber}`,
+            garmentIds: batches[batchIndex].garmentIds || []
+        });
+        
+        return batches[batchIndex];
+    }
+
+    static addGarmentToBatch(batchId, garmentId) {
+        const batches = this.getBatches();
+        const batchIndex = batches.findIndex(batch => batch.id === batchId);
+        
+        if (batchIndex === -1) return false;
+        
+        const batch = batches[batchIndex];
+        
+        // Verificar si la prenda ya está en el lote
+        if (batch.garmentIds.includes(garmentId)) {
+            return false;
+        }
+        
+        // Agregar la prenda al lote
+        batch.garmentIds.push(garmentId);
+        batch.totalGarments = batch.garmentIds.length;
+        
+        this.setData(this.KEYS.BATCHES, batches);
+        
+        // Actualizar la prenda para vincularla al lote
+        const garments = this.getGarments();
+        const garmentIndex = garments.findIndex(g => g.id === garmentId);
+        if (garmentIndex !== -1) {
+            garments[garmentIndex].batchId = batchId;
+            this.setData(this.KEYS.GARMENTS, garments);
+        }
+        
+        return true;
+    }
+
+    static removeGarmentFromBatch(batchId, garmentId) {
+        const batches = this.getBatches();
+        const batchIndex = batches.findIndex(batch => batch.id === batchId);
+        
+        if (batchIndex === -1) return false;
+        
+        const batch = batches[batchIndex];
+        
+        // Remover la prenda del lote
+        batch.garmentIds = batch.garmentIds.filter(id => id !== garmentId);
+        batch.totalGarments = batch.garmentIds.length;
+        
+        this.setData(this.KEYS.BATCHES, batches);
+        
+        // Actualizar la prenda para remover la vinculación al lote
+        const garments = this.getGarments();
+        const garmentIndex = garments.findIndex(g => g.id === garmentId);
+        if (garmentIndex !== -1) {
+            delete garments[garmentIndex].batchId;
+            this.setData(this.KEYS.GARMENTS, garments);
+        }
+        
+        return true;
+    }
+
+
+    static generateBatchNumber() {
+        const year = new Date().getFullYear();
+        const batches = this.getBatches();
+        const batchCount = batches.length + 1;
+        return `LOTE-${batchCount.toString().padStart(3, '0')}-${year}`;
+    }
+
+    static getBatchProgress(batchId) {
+        const batch = this.getBatchById(batchId);
+        if (!batch) return null;
+        
+        return {
+            batchId: batch.id,
+            batchNumber: batch.batchNumber,
+            totalGarments: batch.totalGarments,
+            expectedGarments: batch.expectedGarments,
+            progress: batch.expectedGarments > 0 ? 
+                Math.round((batch.totalGarments / batch.expectedGarments) * 100) : 0,
+            isComplete: batch.totalGarments >= batch.expectedGarments
+        };
+    }
+
+    static deleteBatch(id) {
+        const batches = this.getBatches();
+        const batchIndex = batches.findIndex(batch => batch.id === id);
+        
+        if (batchIndex === -1) return false;
+        
+        const batch = batches[batchIndex];
+        
+        // Remover vinculación de prendas al lote
+        const garments = this.getGarments();
+        batch.garmentIds.forEach(garmentId => {
+            const garmentIndex = garments.findIndex(g => g.id === garmentId);
+            if (garmentIndex !== -1) {
+                delete garments[garmentIndex].batchId;
+            }
+        });
+        this.setData(this.KEYS.GARMENTS, garments);
+        
+        // Remover el lote
+        batches.splice(batchIndex, 1);
+        this.setData(this.KEYS.BATCHES, batches);
+        
+        // Agregar al historial
+        this.addHistoryEntry({
+            action: 'delete_batch',
+            clientId: batch.clientId,
+            operator: app.auth.getCurrentUser()?.name || 'Sistema',
+            details: `Lote eliminado: ${batch.batchNumber}`,
+            garmentIds: batch.garmentIds
+        });
+        
+        return true;
     }
 }
 

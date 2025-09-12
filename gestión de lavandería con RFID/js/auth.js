@@ -11,7 +11,7 @@ class Auth {
         this.maxAttempts = 5;
         this.lockoutTime = 5 * 60 * 1000; // 5 minutos
         
-        // Usuarios predefinidos para el prototipo con diferentes roles
+        // Usuarios predefinidos para el prototipo
         this.users = [
             {
                 id: 1,
@@ -22,36 +22,6 @@ class Auth {
                 email: 'admin@lavanderia.com',
                 branchId: 1,
                 permissions: ['all']
-            },
-            {
-                id: 2,
-                username: 'manager',
-                password: 'manager123',
-                name: 'Gerente de Sucursal',
-                role: 'manager',
-                email: 'manager@lavanderia.com',
-                branchId: 1,
-                permissions: ['view_reports', 'manage_clients', 'manage_garments', 'view_billing']
-            },
-            {
-                id: 3,
-                username: 'operator',
-                password: 'operator123',
-                name: 'Operador de Recepción',
-                role: 'operator',
-                email: 'operator@lavanderia.com',
-                branchId: 1,
-                permissions: ['receive_garments', 'update_status', 'view_garments']
-            },
-            {
-                id: 4,
-                username: 'manager2',
-                password: 'manager123',
-                name: 'Gerente Sucursal 2',
-                role: 'manager',
-                email: 'manager2@lavanderia.com',
-                branchId: 2,
-                permissions: ['view_reports', 'manage_clients', 'manage_garments', 'view_billing']
             }
         ];
         

@@ -30,7 +30,6 @@ class LaundryApp {
         this.initializeLogoutEvents();
         
         // Inicializar menú móvil
-        this.initializeMobileMenu();
         
         // Iniciar monitoreo de sesión
         this.auth.startSessionMonitoring();
@@ -363,96 +362,6 @@ class LaundryApp {
         localStorage.setItem('app_state', JSON.stringify(appState));
     }
 
-    // Funcionalidad de menú móvil
-    initializeMobileMenu() {
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        
-        if (mobileMenuBtn && sidebar && overlay) {
-            // Toggle del menú móvil con animación
-            mobileMenuBtn.addEventListener('click', () => {
-                const isActive = sidebar.classList.contains('active');
-                
-                if (isActive) {
-                    // Cerrar menú
-                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    overlay.style.transition = 'opacity 0.3s ease';
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('active');
-                } else {
-                    // Abrir menú
-                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    overlay.style.transition = 'opacity 0.3s ease';
-                    sidebar.classList.add('active');
-                    overlay.classList.add('active');
-                }
-            });
-            
-            // Cerrar menú al hacer click en el overlay
-            overlay.addEventListener('click', () => {
-                sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                overlay.style.transition = 'opacity 0.3s ease';
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-            });
-            
-            // Cerrar menú al hacer click en un item del menú
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    // Solo en móvil (cuando el overlay es visible)
-                    if (window.innerWidth <= 768) {
-                        sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                        overlay.style.transition = 'opacity 0.3s ease';
-                        sidebar.classList.remove('active');
-                        overlay.classList.remove('active');
-                    }
-                });
-            });
-            
-            // Cerrar menú con tecla Escape
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    overlay.style.transition = 'opacity 0.3s ease';
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('active');
-                }
-            });
-            
-            // Cerrar al cambiar orientación en móvil
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => {
-                    if (sidebar.classList.contains('active')) {
-                        sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                        overlay.style.transition = 'opacity 0.3s ease';
-                        sidebar.classList.remove('active');
-                        overlay.classList.remove('active');
-                    }
-                }, 100);
-            });
-            
-            // Cerrar al redimensionar ventana
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
-                    sidebar.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    overlay.style.transition = 'opacity 0.3s ease';
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('active');
-                }
-            });
-            
-            // Mejorar accesibilidad táctil
-            mobileMenuBtn.style.minHeight = '44px';
-            mobileMenuBtn.style.minWidth = '44px';
-            mobileMenuBtn.style.display = 'flex';
-            mobileMenuBtn.style.alignItems = 'center';
-            mobileMenuBtn.style.justifyContent = 'center';
-            
-            console.log('✅ Menú móvil inicializado con mejoras de accesibilidad');
-        }
-    }
 
     // Métodos de autenticación
     initializeLogoutEvents() {
@@ -593,9 +502,7 @@ class LaundryApp {
 
     getRoleDisplayText(role) {
         const roleTexts = {
-            'admin': 'Administrador',
-            'manager': 'Gerente',
-            'operator': 'Operador'
+            'admin': 'Administrador'
         };
         return roleTexts[role] || role;
     }

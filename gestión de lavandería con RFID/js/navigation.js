@@ -21,6 +21,11 @@ class Navigation {
             icon: '📥',
             module: 'Reception'
         },
+        batches: {
+            title: 'Lotes',
+            icon: '📦',
+            module: 'Batches'
+        },
         control: {
             title: 'Control Interno',
             icon: '⚙️',
@@ -47,19 +52,14 @@ class Navigation {
             module: 'Guides'
         },
         'rfid-simulator': {
-            title: 'Simulador RFID',
+            title: 'Simulador C72 RFID',
             icon: '🔍',
-            module: 'RFIDSimulator'
+            module: 'C72RFIDSimulator'
         },
         notifications: {
             title: 'Notificaciones',
             icon: '📧',
             module: 'Notifications'
-        },
-        billing: {
-            title: 'Facturación',
-            icon: '💰',
-            module: 'Billing'
         },
         settings: {
             title: 'Configuración',
