@@ -7,7 +7,6 @@ class Storage {
     static KEYS = {
         CLIENTS: 'laundry_clients',
         GARMENTS: 'laundry_garments',
-        GUIDES: 'laundry_guides',
         HISTORY: 'laundry_history',
         SETTINGS: 'laundry_settings',
         COUNTERS: 'laundry_counters',
@@ -194,8 +193,6 @@ class Storage {
             }
         ];
 
-        // Guías de ejemplo
-        const guides = [];
 
         // Historial de ejemplo
         const history = [];
@@ -216,7 +213,6 @@ class Storage {
         const counters = {
             clients: 4,
             garments: 5,
-            guides: 1,
             history: 1,
             branches: 4,
             notifications: 1,
@@ -228,7 +224,6 @@ class Storage {
         this.setData(this.KEYS.CLIENTS, clients);
         this.setData(this.KEYS.BATCHES, batches);
         this.setData(this.KEYS.GARMENTS, garments);
-        this.setData(this.KEYS.GUIDES, guides);
         this.setData(this.KEYS.HISTORY, history);
         this.setData(this.KEYS.SETTINGS, settings);
         this.setData(this.KEYS.NOTIFICATIONS, notifications);
@@ -379,30 +374,6 @@ class Storage {
         return null;
     }
 
-    // Métodos para guías
-    static getGuides() {
-        return this.getData(this.KEYS.GUIDES, []);
-    }
-
-    static setGuides(guides) {
-        return this.setData(this.KEYS.GUIDES, guides);
-    }
-
-    static addGuide(guide) {
-        const guides = this.getGuides();
-        const counters = this.getCounters();
-        
-        guide.id = counters.guides++;
-        guide.generatedAt = new Date().toISOString();
-        guide.status = 'activa';
-        
-        guides.push(guide);
-        
-        this.setGuides(guides);
-        this.setCounters(counters);
-        
-        return guide;
-    }
 
     // Métodos para historial
     static getHistory() {
@@ -460,7 +431,6 @@ class Storage {
     static getStats() {
         const clients = this.getClients();
         const garments = this.getGarments();
-        const guides = this.getGuides();
         const batches = this.getBatches();
         
         return {
@@ -470,8 +440,6 @@ class Storage {
             garmentsInProcess: garments.filter(g => g.status === 'en_proceso').length,
             garmentsReady: garments.filter(g => g.status === 'listo').length,
             garmentsDelivered: garments.filter(g => g.status === 'entregado').length,
-            activeGuides: guides.filter(g => g.status === 'activa').length,
-            completedGuides: guides.filter(g => g.status === 'completada').length,
             totalBatches: batches.length,
             completedBatches: batches.filter(b => b.totalGarments >= b.expectedGarments).length,
             inProgressBatches: batches.filter(b => b.totalGarments < b.expectedGarments && b.totalGarments > 0).length,
@@ -517,13 +485,11 @@ class Storage {
     static fixCounters() {
         const clients = this.getClients();
         const garments = this.getGarments();
-        const guides = this.getGuides();
         const history = this.getHistory();
         
         const counters = {
             clients: clients.length > 0 ? Math.max(...clients.map(c => c.id)) + 1 : 1,
             garments: garments.length > 0 ? Math.max(...garments.map(g => g.id)) + 1 : 1,
-            guides: guides.length > 0 ? Math.max(...guides.map(g => g.id)) + 1 : 1,
             history: history.length > 0 ? Math.max(...history.map(h => h.id)) + 1 : 1
         };
         
@@ -537,7 +503,6 @@ class Storage {
         if (confirm('¿Está seguro que desea limpiar todos los datos? Esta acción no se puede deshacer.')) {
             localStorage.removeItem(this.KEYS.CLIENTS);
             localStorage.removeItem(this.KEYS.GARMENTS);
-            localStorage.removeItem(this.KEYS.GUIDES);
             localStorage.removeItem(this.KEYS.HISTORY);
             localStorage.removeItem(this.KEYS.COUNTERS);
             localStorage.removeItem('laundry_initialized');
@@ -552,7 +517,6 @@ class Storage {
         const data = {
             clients: this.getClients(),
             garments: this.getGarments(),
-            guides: this.getGuides(),
             history: this.getHistory(),
             settings: this.getSettings(),
             counters: this.getCounters(),
@@ -578,7 +542,6 @@ class Storage {
             
             if (data.clients) this.setClients(data.clients);
             if (data.garments) this.setGarments(data.garments);
-            if (data.guides) this.setGuides(data.guides);
             if (data.history) this.setData(this.KEYS.HISTORY, data.history);
             if (data.settings) this.setData(this.KEYS.SETTINGS, data.settings);
             if (data.counters) this.setCounters(data.counters);

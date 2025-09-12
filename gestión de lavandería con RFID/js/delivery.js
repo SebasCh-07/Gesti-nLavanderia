@@ -249,25 +249,18 @@ class Delivery {
                         garmentIds: [garmentData.id],
                         action: 'entrega',
                         operator: app.currentUser?.username || 'sistema',
-                        details: `Entrega de prenda ${garment.rfidCode} - ${garmentData.type} ${garmentData.color}`
+                        details: `Entrega de prenda ${garment.rfidCode} - ${garmentData.type} ${garmentData.color}`,
+                        timestamp: new Date().toISOString()
                     });
                 }
             });
 
-            // Crear guía de entrega
-            if (garmentIds.length > 0) {
-                Storage.addGuide({
-                    type: 'entrega',
-                    clientId: this.selectedClient.id,
-                    garmentIds: garmentIds,
-                    totalItems: garmentIds.length,
-                    notes: `Entrega completada - ${new Date().toLocaleString('es-ES')}`
-                });
-            }
+            // Proceso completado - No se crean guías
+            app.showSuccessMessage(`✅ Proceso completado: ${garmentIds.length} prenda(s) entregada(s) a ${this.selectedClient.name}. El flujo ha terminado exitosamente.`);
             
-            app.showSuccessMessage(`Entrega confirmada: ${garmentIds.length} prenda(s) entregada(s)`);
+            // Resetear y volver al dashboard
             this.resetDelivery();
-            this.refreshContent();
+            Navigation.navigateTo('dashboard');
             
         } catch (error) {
             console.error('Error en confirmación de entrega:', error);
