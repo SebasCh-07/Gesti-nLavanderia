@@ -5,6 +5,7 @@
 
 class Control {
     static currentView = 'list'; // 'list', 'kanban', 'timeline'
+    static currentMode = 'garments'; // 'garments', 'batches'
     static selectedStatus = 'all';
     static searchQuery = '';
     static sortBy = 'receivedAt';
@@ -26,6 +27,18 @@ class Control {
             <!-- Barra de herramientas -->
             <div class="control-toolbar card mb-2">
                 <div class="toolbar-section">
+                    <div class="mode-toggles">
+                        <button class="btn ${this.currentMode === 'garments' ? 'btn-primary' : 'btn-secondary'}" 
+                                onclick="Control.changeMode('garments')">
+                            👕 Prendas
+                        </button>
+                        <button class="btn ${this.currentMode === 'batches' ? 'btn-primary' : 'btn-secondary'}" 
+                                onclick="Control.changeMode('batches')">
+                            📦 Lotes
+                        </button>
+                    </div>
+                    
+                    ${this.currentMode === 'garments' ? `
                     <div class="view-toggles">
                         <button class="btn ${this.currentView === 'list' ? 'btn-primary' : 'btn-secondary'}" 
                                 onclick="Control.changeView('list')">
@@ -40,6 +53,7 @@ class Control {
                             ⏰ Línea de Tiempo
                         </button>
                     </div>
+                    ` : ''}
                 </div>
                 
                 <div class="toolbar-section">
@@ -117,6 +131,10 @@ class Control {
     }
 
     static renderCurrentView() {
+        if (this.currentMode === 'batches') {
+            return this.renderBatchList();
+        }
+        
         switch (this.currentView) {
             case 'list':
                 return this.renderListView();
@@ -425,6 +443,11 @@ class Control {
 
     static changeView(view) {
         this.currentView = view;
+        this.refreshContent();
+    }
+
+    static changeMode(mode) {
+        this.currentMode = mode;
         this.refreshContent();
     }
 
@@ -1786,6 +1809,314 @@ class Control {
             style.id = 'control-styles';
             document.head.appendChild(style);
         }
+    }
+
+    // ===== MÉTODOS PARA GESTIÓN DE LOTES =====
+
+    static renderBatchList() {
+        const batches = this.getFilteredBatches();
+
+        if (batches.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-icon">📦</div>
+                    <h3>No hay lotes disponibles</h3>
+                    <p>Los lotes aparecerán aquí cuando se reciban prendas agrupadas</p>
+                    <button class="btn btn-primary" onclick="Navigation.loadPage('reception')">
+                        ➕ Ir a Recepción
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Lotes de Trabajo (${batches.length})</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="Control.exportBatchList()">
+                            📊 Exportar Lotes
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>Cliente</th>
+                                <th>Prendas</th>
+                                <th>Progreso</th>
+                                <th>Estado</th>
+                                <th>Prioridad</th>
+                                <th>Creado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${batches.map(batch => this.renderBatchRow(batch)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    static renderBatchRow(batch) {
+        const client = Storage.getClientById(batch.clientId);
+        const progress = Storage.getBatchProgress(batch.id);
+        const daysInSystem = Math.floor((new Date() - new Date(batch.createdAt)) / (1000 * 60 * 60 * 24));
+        
+        return `
+            <tr class="batch-row" data-batch-id="${batch.id}">
+                <td>
+                    <div class="batch-info">
+                        <strong class="batch-number">${batch.batchNumber}</strong>
+                        <div class="batch-name">${batch.name}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="client-info">
+                        <strong>${client?.name || 'Cliente no encontrado'}</strong>
+                        <div class="client-details">${client?.phone || 'Sin teléfono'}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="garment-count">
+                        <span class="count-current">${batch.totalGarments}</span>
+                        <span class="count-separator">/</span>
+                        <span class="count-expected">${batch.expectedGarments || '?'}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress?.progress || 0}%"></div>
+                        </div>
+                        <span class="progress-text">${progress?.progress || 0}%</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge ${batch.status}">
+                        ${this.getStatusLabel(batch.status)}
+                    </span>
+                </td>
+                <td>
+                    <span class="priority-badge ${batch.priority}">
+                        ${this.getPriorityLabel(batch.priority)}
+                    </span>
+                </td>
+                <td>
+                    <div class="date-info">
+                        <div class="date">${new Date(batch.createdAt).toLocaleDateString('es-ES')}</div>
+                        <div class="days">${daysInSystem} días</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-info" onclick="Control.viewBatchDetails(${batch.id})" title="Ver detalles">
+                            👁️
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="Control.updateBatchStatus(${batch.id})" title="Actualizar estado">
+                            ✏️
+                        </button>
+                        ${batch.status === 'recibido' ? `
+                        <button class="btn btn-sm btn-success" onclick="Control.startBatchProcessing(${batch.id})" title="Iniciar proceso">
+                            ▶️
+                        </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    static getFilteredBatches() {
+        let batches = Storage.getBatches();
+        
+        if (this.selectedStatus !== 'all') {
+            batches = batches.filter(batch => batch.status === this.selectedStatus);
+        }
+        
+        if (this.searchQuery) {
+            const query = this.searchQuery.toLowerCase();
+            batches = batches.filter(batch => {
+                const client = Storage.getClientById(batch.clientId);
+                return batch.batchNumber.toLowerCase().includes(query) ||
+                       batch.name.toLowerCase().includes(query) ||
+                       (client && client.name.toLowerCase().includes(query));
+            });
+        }
+        
+        batches.sort((a, b) => {
+            const aValue = new Date(a.createdAt);
+            const bValue = new Date(b.createdAt);
+            return this.sortOrder === 'asc' ? aValue > bValue ? 1 : -1 : aValue < bValue ? 1 : -1;
+        });
+        
+        return batches;
+    }
+
+    static viewBatchDetails(batchId) {
+        const batch = Storage.getBatchById(batchId);
+        if (!batch) {
+            app.showErrorMessage('Lote no encontrado');
+            return;
+        }
+
+        const client = Storage.getClientById(batch.clientId);
+        const garments = Storage.getGarments().filter(g => batch.garmentIds.includes(g.id));
+        
+        const content = `
+            <div class="batch-details">
+                <div class="batch-header">
+                    <h4>📦 ${batch.batchNumber}</h4>
+                    <p class="batch-description">${batch.description || 'Sin descripción'}</p>
+                </div>
+                
+                <div class="batch-info-grid">
+                    <div class="info-item">
+                        <label>Cliente:</label>
+                        <span>${client?.name || 'No encontrado'}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Estado:</label>
+                        <span class="status-badge ${batch.status}">${this.getStatusLabel(batch.status)}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Prendas:</label>
+                        <span>${batch.totalGarments} / ${batch.expectedGarments || '?'}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Prioridad:</label>
+                        <span class="priority-badge ${batch.priority}">${this.getPriorityLabel(batch.priority)}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Creado:</label>
+                        <span>${new Date(batch.createdAt).toLocaleString('es-ES')}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Notas:</label>
+                        <span>${batch.notes || 'Sin notas'}</span>
+                    </div>
+                </div>
+                
+                <div class="garments-section">
+                    <h5>Prendas del Lote (${garments.length})</h5>
+                    <div class="garments-list">
+                        ${garments.map(garment => `
+                            <div class="garment-item">
+                                <span class="garment-rfid">${garment.rfidCode}</span>
+                                <span class="garment-type">${garment.type} ${garment.color}</span>
+                                <span class="garment-status ${garment.status}">${this.getStatusLabel(garment.status)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        app.showModal(`Detalles del Lote - ${batch.batchNumber}`, content);
+    }
+
+    static updateBatchStatus(batchId) {
+        const batch = Storage.getBatchById(batchId);
+        if (!batch) return;
+
+        const content = `
+            <div class="status-update-form">
+                <div class="form-group">
+                    <label>Nuevo Estado:</label>
+                    <select id="new-batch-status" class="form-control">
+                        <option value="recibido" ${batch.status === 'recibido' ? 'selected' : ''}>Recibido</option>
+                        <option value="en_proceso" ${batch.status === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                        <option value="listo" ${batch.status === 'listo' ? 'selected' : ''}>Listo</option>
+                        <option value="entregado" ${batch.status === 'entregado' ? 'selected' : ''}>Entregado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas:</label>
+                    <textarea id="batch-update-notes" class="form-control" rows="3" placeholder="Observaciones sobre el cambio de estado..."></textarea>
+                </div>
+            </div>
+        `;
+
+        const modal = app.showModal('Actualizar Estado del Lote', content);
+        
+        const modalFooter = modal.querySelector('.modal-footer');
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" onclick="app.closeModal('dynamic-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="Control.confirmBatchStatusUpdate(${batchId})">Actualizar</button>
+        `;
+    }
+
+    static confirmBatchStatusUpdate(batchId) {
+        const newStatus = document.getElementById('new-batch-status').value;
+        const notes = document.getElementById('batch-update-notes').value;
+        
+        const batch = Storage.getBatchById(batchId);
+        if (!batch) return;
+
+        Storage.updateBatch(batchId, {
+            status: newStatus,
+            notes: notes ? `${batch.notes || ''}\n[${new Date().toLocaleString('es-ES')}] ${notes}`.trim() : batch.notes
+        });
+
+        if (newStatus === 'en_proceso') {
+            const garments = Storage.getGarments();
+            batch.garmentIds.forEach(garmentId => {
+                const garmentIndex = garments.findIndex(g => g.id === garmentId);
+                if (garmentIndex !== -1) {
+                    garments[garmentIndex].status = 'en_proceso';
+                    garments[garmentIndex].processedAt = new Date().toISOString();
+                }
+            });
+            Storage.setGarments(garments);
+        }
+
+        if (newStatus === 'listo') {
+            const garments = Storage.getGarments();
+            batch.garmentIds.forEach(garmentId => {
+                const garmentIndex = garments.findIndex(g => g.id === garmentId);
+                if (garmentIndex !== -1) {
+                    garments[garmentIndex].status = 'listo';
+                }
+            });
+            Storage.setGarments(garments);
+        }
+
+        app.closeModal('dynamic-modal');
+        app.showSuccessMessage(`Estado del lote ${batch.batchNumber} actualizado a: ${this.getStatusLabel(newStatus)}`);
+        this.refreshContent();
+    }
+
+    static startBatchProcessing(batchId) {
+        this.confirmBatchStatusUpdate(batchId);
+    }
+
+    static getStatusLabel(status) {
+        const labels = {
+            'recibido': 'Recibido',
+            'en_proceso': 'En Proceso',
+            'listo': 'Listo',
+            'entregado': 'Entregado'
+        };
+        return labels[status] || status;
+    }
+
+    static getPriorityLabel(priority) {
+        const labels = {
+            'normal': 'Normal',
+            'alta': 'Alta',
+            'urgente': 'Urgente'
+        };
+        return labels[priority] || priority;
+    }
+
+    static exportBatchList() {
+        const batches = this.getFilteredBatches();
+        app.showSuccessMessage('Lista de lotes exportada');
     }
 }
 

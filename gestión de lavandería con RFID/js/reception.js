@@ -554,19 +554,29 @@ class Reception {
         return `
             <div class="garments-list">
                 ${this.scannedGarments.map((garment, index) => `
-                    <div class="garment-item">
+                    <div class="garment-item ${garment.isBatchItem ? 'batch-item-pending' : ''}">
                         <div class="garment-main">
-                            <div class="garment-rfid">${garment.rfidCode}</div>
+                            <div class="garment-rfid">
+                                ${garment.rfidCode}
+                                ${garment.isBatchItem ? '<span class="batch-badge">📦 Lote</span>' : ''}
+                            </div>
                             <div class="garment-details">
-                                <span class="garment-type">${garment.type}</span>
-                                <span class="garment-color">${garment.color}</span>
+                                <span class="garment-type ${garment.type === 'Prenda RFID' ? 'incomplete' : ''}">${garment.type}</span>
+                                <span class="garment-color ${garment.color === 'Sin especificar' ? 'incomplete' : ''}">${garment.color}</span>
                                 <span class="garment-size">${garment.size}</span>
                             </div>
+                            ${garment.isBatchItem ? '<div class="garment-status incomplete">⚠️ Pendiente completar detalles</div>' : ''}
                         </div>
                         <div class="garment-actions">
-                            <button class="btn btn-sm btn-secondary" onclick="Reception.editGarment(${index})" title="Editar">
-                                ✏️
-                            </button>
+                            ${garment.isBatchItem ? `
+                                <button class="btn btn-sm btn-warning" onclick="Reception.openBatchDetailsModal()" title="Completar detalles">
+                                    📝 Completar
+                                </button>
+                            ` : `
+                                <button class="btn btn-sm btn-secondary" onclick="Reception.editGarment(${index})" title="Editar">
+                                    ✏️
+                                </button>
+                            `}
                             <button class="btn btn-sm btn-danger" onclick="Reception.removeGarment(${index})" title="Eliminar">
                                 🗑️
                             </button>
@@ -681,6 +691,9 @@ class Reception {
         this.showC72ScanningStatus(false);
         this.showC72ScanComplete();
         this.updateC72TagsCount();
+
+        // Automáticamente agregar tags a prendas escaneadas y abrir modal
+        this.addBatchToGarmentsAndShowModal();
     }
 
     // Escaneo individual C72
@@ -814,10 +827,9 @@ class Reception {
                     <strong>Escaneo completado!</strong>
                     Se detectaron ${this.scannedTags.length} tags RFID
                 </div>
-                <div class="mt-3">
-                    <button class="btn btn-primary btn-sm" onclick="Reception.createGarmentsFromC72Scan()">
-                        <i class="fas fa-plus"></i> Crear Prendas desde Tags
-                    </button>
+                <div class="alert alert-info alert-sm mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    Los tags se agregarán automáticamente a las prendas escaneadas
                 </div>
             `;
         }
@@ -864,7 +876,53 @@ class Reception {
         this.updateC72TagsCount();
     }
 
-    // Crear prendas desde el escaneo C72
+    // Agregar lote a prendas escaneadas y mostrar modal
+    static addBatchToGarmentsAndShowModal() {
+        if (this.scannedTags.length === 0) {
+            this.showC72Error('No hay tags escaneados');
+            return;
+        }
+
+        // Crear prendas temporales para cada tag escaneado
+        let addedCount = 0;
+        this.scannedTags.forEach(tag => {
+            // Verificar si ya existe
+            if (this.scannedGarments.find(g => g.rfidCode === tag.id)) {
+                return; // Skip si ya existe
+            }
+
+            const garment = {
+                rfidCode: tag.id,
+                type: 'Prenda RFID', // Temporal, se completará en el modal
+                color: 'Sin especificar',
+                size: 'Sin especificar',
+                condition: 'bueno',
+                notes: `Escaneada con C72 - ${new Date().toLocaleString()}`,
+                isBatchItem: true // Marcar como item de lote
+            };
+
+            this.scannedGarments.push(garment);
+            addedCount++;
+        });
+
+        // Actualizar la lista de prendas
+        this.refreshGarmentsList();
+        
+        // Mostrar botones de acción
+        if (this.scannedGarments.length > 0) {
+            this.showActionButtons();
+        }
+
+        // Limpiar escaneo C72
+        this.clearC72Results();
+
+        // Abrir modal automáticamente para completar detalles del lote
+        setTimeout(() => {
+            this.openBatchDetailsModal();
+        }, 500);
+    }
+
+    // Crear prendas desde el escaneo C72 (función original mantenida para compatibilidad)
     static createGarmentsFromC72Scan() {
         if (this.scannedTags.length === 0) {
             this.showC72Error('No hay tags escaneados para crear prendas');
@@ -922,6 +980,316 @@ class Reception {
                     ${message}
                 </div>
             `;
+        }
+    }
+
+    // Modal para completar detalles del lote completo
+    static openBatchDetailsModal() {
+        const batchItems = this.scannedGarments.filter(g => g.isBatchItem);
+        
+        if (batchItems.length === 0) {
+            console.log('No hay items de lote para mostrar en el modal');
+            return;
+        }
+
+        const modalContent = `
+            <div class="batch-details-modal">
+                <div class="batch-header">
+                    <h4>📦 Detalles del Lote</h4>
+                    <p class="text-muted">${batchItems.length} prendas escaneadas con C72 RFID</p>
+                </div>
+                
+                <div class="batch-info-section">
+                    <div class="batch-summary-card">
+                        <h6>📊 Resumen del Lote</h6>
+                        <div class="batch-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">${batchItems.length}</span>
+                                <span class="stat-label">Prendas</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${this.scannedTags.length}</span>
+                                <span class="stat-label">Tags RFID</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">C72</span>
+                                <span class="stat-label">Escáner</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="batch-details-form">
+                    <h6>🔧 Configurar Detalles del Lote</h6>
+                    <form id="batch-details-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Prendas *</label>
+                                    <select id="batch-type" class="form-control" required>
+                                        <option value="">Seleccionar tipo...</option>
+                                        <option value="Camisa">Camisa</option>
+                                        <option value="Pantalón">Pantalón</option>
+                                        <option value="Buzo">Buzo</option>
+                                        <option value="Vestido">Vestido</option>
+                                        <option value="Falda">Falda</option>
+                                        <option value="Chaqueta">Chaqueta</option>
+                                        <option value="Abrigo">Abrigo</option>
+                                        <option value="Uniforme">Uniforme</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Color Predominante *</label>
+                                    <input type="text" id="batch-color" class="form-control" 
+                                           placeholder="Ej: Blanco, Azul, Negro, Gris..." required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Talla Principal</label>
+                                    <select id="batch-size" class="form-control">
+                                        <option value="">Talla principal...</option>
+                                        <option value="XS">XS</option>
+                                        <option value="S">S</option>
+                                        <option value="M">M</option>
+                                        <option value="L">L</option>
+                                        <option value="XL">XL</option>
+                                        <option value="XXL">XXL</option>
+                                        <option value="Mixto">Mixto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Condición General</label>
+                                    <select id="batch-condition" class="form-control">
+                                        <option value="bueno" selected>Bueno</option>
+                                        <option value="regular">Regular</option>
+                                        <option value="delicado">Delicado</option>
+                                        <option value="manchado">Manchado</option>
+                                        <option value="roto">Roto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Servicio</label>
+                                    <select id="batch-service" class="form-control">
+                                        <option value="normal" selected>Lavado Normal</option>
+                                        <option value="express">Servicio Express</option>
+                                        <option value="delicate">Prendas Delicadas</option>
+                                        <option value="dry-clean">Lavado en Seco</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Marca o Origen</label>
+                                    <input type="text" id="batch-brand" class="form-control" 
+                                           placeholder="Ej: Empresa, Cliente específico, etc.">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Prioridad del Lote</label>
+                                    <select id="batch-priority" class="form-control">
+                                        <option value="normal" selected>Normal</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="urgente">Urgente</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Descripción del Lote</label>
+                            <textarea id="batch-description" class="form-control" rows="3" 
+                                      placeholder="Descripción detallada del lote, instrucciones especiales, observaciones..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Notas Adicionales</label>
+                            <textarea id="batch-notes" class="form-control" rows="2" 
+                                      placeholder="Notas específicas para todas las prendas del lote..."></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="batch-preview">
+                    <h6>👀 Vista Previa del Lote</h6>
+                    <div class="preview-items">
+                        ${batchItems.slice(0, 5).map((garment, index) => `
+                            <div class="preview-item">
+                                <span class="preview-rfid">${garment.rfidCode}</span>
+                                <span class="preview-details" id="preview-${index}">Prenda RFID</span>
+                            </div>
+                        `).join('')}
+                        ${batchItems.length > 5 ? `<div class="preview-more">... y ${batchItems.length - 5} prendas más</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modal = app.showModal('Configurar Lote Escaneado', modalContent);
+        
+        // Agregar botones personalizados para el modal
+        const modalFooter = modal.querySelector('.modal-footer');
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" onclick="Reception.cancelBatchDetails()">
+                <i class="fas fa-times"></i> Cancelar Lote
+            </button>
+            <button class="btn btn-success" onclick="Reception.saveBatchDetails()" id="save-batch-btn">
+                <i class="fas fa-check"></i> Aplicar a Todo el Lote (${batchItems.length} prendas)
+            </button>
+        `;
+
+        // Agregar listeners para actualizar vista previa
+        this.addBatchFormListeners();
+    }
+
+    // Agregar listeners para el formulario del lote
+    static addBatchFormListeners() {
+        const form = document.getElementById('batch-details-form');
+        if (!form) return;
+
+        // Listener para actualizar vista previa en tiempo real
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                this.updateBatchPreview();
+            });
+        });
+    }
+
+    // Actualizar vista previa del lote
+    static updateBatchPreview() {
+        const batchType = document.getElementById('batch-type')?.value || '';
+        const batchColor = document.getElementById('batch-color')?.value || '';
+        const batchSize = document.getElementById('batch-size')?.value || '';
+        const batchCondition = document.getElementById('batch-condition')?.value || 'bueno';
+
+        const previewText = batchType && batchColor ? 
+            `${batchType} ${batchColor}${batchSize ? ` (${batchSize})` : ''}` : 
+            'Prenda RFID';
+
+        // Actualizar vista previa
+        const previewElements = document.querySelectorAll('.preview-details');
+        previewElements.forEach(element => {
+            element.textContent = previewText;
+        });
+
+        // Actualizar botón de guardar
+        const saveBtn = document.getElementById('save-batch-btn');
+        if (saveBtn) {
+            if (batchType && batchColor) {
+                saveBtn.disabled = false;
+                saveBtn.className = 'btn btn-success';
+            } else {
+                saveBtn.disabled = true;
+                saveBtn.className = 'btn btn-secondary';
+            }
+        }
+    }
+
+    // Guardar detalles del lote
+    static saveBatchDetails() {
+        const batchItems = this.scannedGarments.filter(g => g.isBatchItem);
+        
+        // Obtener datos del formulario
+        const batchType = document.getElementById('batch-type')?.value;
+        const batchColor = document.getElementById('batch-color')?.value;
+        const batchSize = document.getElementById('batch-size')?.value || 'Sin especificar';
+        const batchCondition = document.getElementById('batch-condition')?.value || 'bueno';
+        const batchService = document.getElementById('batch-service')?.value || 'normal';
+        const batchBrand = document.getElementById('batch-brand')?.value || '';
+        const batchPriority = document.getElementById('batch-priority')?.value || 'normal';
+        const batchDescription = document.getElementById('batch-description')?.value || '';
+        const batchNotes = document.getElementById('batch-notes')?.value || '';
+
+        // Validar campos obligatorios
+        if (!batchType || !batchColor) {
+            app.showErrorMessage('Tipo de prenda y color son obligatorios');
+            return;
+        }
+
+        // Aplicar detalles del lote a todas las prendas
+        batchItems.forEach(garment => {
+            garment.type = batchType;
+            garment.color = batchColor;
+            garment.size = batchSize;
+            garment.condition = batchCondition;
+            garment.serviceType = batchService;
+            garment.priority = batchPriority;
+            
+            // Combinar notas
+            const originalNotes = garment.notes || '';
+            const newNotes = [
+                originalNotes,
+                batchDescription ? `Descripción: ${batchDescription}` : '',
+                batchBrand ? `Marca/Origen: ${batchBrand}` : '',
+                batchNotes ? `Notas: ${batchNotes}` : '',
+                `Lote procesado con C72 RFID - ${new Date().toLocaleString()}`
+            ].filter(note => note.trim()).join(' | ');
+            
+            garment.notes = newNotes;
+            garment.isBatchItem = false; // Ya no es item temporal del lote
+        });
+
+        // Cerrar modal
+        app.closeModal('dynamic-modal');
+
+        // Actualizar interfaz
+        this.refreshGarmentsList();
+        
+        // Mostrar mensaje de éxito
+        app.showSuccessMessage(`✅ Lote completado: ${batchItems.length} prendas configuradas como ${batchType} ${batchColor}`);
+
+        // Mostrar botones de acción
+        if (this.scannedGarments.length > 0) {
+            this.showActionButtons();
+        }
+    }
+
+    // Cancelar detalles del lote
+    static cancelBatchDetails() {
+        // Remover items del lote que no están completados
+        const batchItems = this.scannedGarments.filter(g => g.isBatchItem);
+        const incompleteItems = batchItems.filter(g => !g.type || g.type === 'Prenda RFID' || !g.color || g.color === 'Sin especificar');
+
+        // Remover items incompletos
+        incompleteItems.forEach(garment => {
+            const index = this.scannedGarments.indexOf(garment);
+            if (index > -1) {
+                this.scannedGarments.splice(index, 1);
+            }
+        });
+
+        // Marcar items completados como listos
+        const completedItems = batchItems.filter(g => g.type && g.type !== 'Prenda RFID' && g.color && g.color !== 'Sin especificar');
+        completedItems.forEach(garment => {
+            garment.isBatchItem = false;
+        });
+
+        // Cerrar modal
+        app.closeModal('dynamic-modal');
+
+        // Actualizar interfaz
+        this.refreshGarmentsList();
+        
+        if (completedItems.length > 0) {
+            app.showSuccessMessage(`${completedItems.length} prendas guardadas del lote`);
+            this.showActionButtons();
+        } else {
+            app.showInfoMessage('Lote cancelado');
         }
     }
 
@@ -1286,10 +1654,12 @@ class Reception {
                 const garment = Storage.addGarment({
                     ...garmentData,
                     clientId: this.selectedClient.id,
+                    branchId: this.selectedClient.branchId || 1,
                     status: 'recibido',
                     serviceType: serviceType,
                     priority: priority,
-                    receptionNotes: notes
+                    receptionNotes: notes,
+                    receivedAt: new Date().toISOString()
                 });
                 garmentIds.push(garment.id);
                 console.log('✅ Prenda guardada:', garment);
@@ -1298,16 +1668,28 @@ class Reception {
             console.log('📊 Total de prendas guardadas:', garmentIds.length);
             console.log('📋 Todas las prendas en el sistema:', Storage.getGarments());
 
-            // Crear guía de recepción
-            const guide = Storage.addGuide({
-                type: 'recepcion',
-                clientId: this.selectedClient.id,
-                garmentIds: garmentIds,
-                totalItems: this.scannedGarments.length,
-                serviceType: serviceType,
-                priority: priority,
-                notes: notes
-            });
+            // Crear lote automáticamente si hay múltiples prendas
+            let batch = null;
+            if (this.scannedGarments.length > 1) {
+                batch = Storage.createBatch({
+                    clientId: this.selectedClient.id,
+                    branchId: this.selectedClient.branchId || 1,
+                    name: `Lote de ${this.selectedClient.name}`,
+                    description: `Lote de ${this.scannedGarments.length} prendas - ${serviceType}`,
+                    garmentIds: garmentIds,
+                    expectedGarments: this.scannedGarments.length,
+                    serviceType: serviceType,
+                    priority: priority,
+                    notes: notes || `Lote creado automáticamente desde recepción`
+                });
+
+                // Agregar las prendas al lote
+                garmentIds.forEach(garmentId => {
+                    Storage.addGarmentToBatch(batch.id, garmentId);
+                });
+
+                console.log('✅ Lote creado:', batch);
+            }
 
             // Actualizar contador de servicios del cliente
             const updatedServiceCount = (this.selectedClient.totalServices || 0) + 1;
@@ -1321,11 +1703,11 @@ class Reception {
                 action: 'recepcion',
                 garmentIds: garmentIds,
                 operator: app.currentUser?.username || 'sistema',
-                details: `Recepción de ${this.scannedGarments.length} prenda(s) - Guía #${guide.id}`
+                details: `Recepción de ${this.scannedGarments.length} prenda(s)${batch ? ` - Lote #${batch.batchNumber}` : ''}`
             });
 
             // Mostrar confirmación de éxito
-            this.showSuccessConfirmation(guide);
+            this.showSuccessConfirmation(batch, garmentIds);
 
         } catch (error) {
             console.error('Error en confirmación:', error);
@@ -1333,7 +1715,7 @@ class Reception {
         }
     }
 
-    static showSuccessConfirmation(guide) {
+    static showSuccessConfirmation(batch, garmentIds) {
         const content = `
             <div class="success-confirmation">
                 <div class="success-icon">✅</div>
@@ -1347,10 +1729,16 @@ class Reception {
                         <span>Prendas Recibidas:</span>
                         <span>${this.scannedGarments.length}</span>
                     </div>
+                    ${batch ? `
                     <div class="detail-item">
-                        <span>Guía de Recepción:</span>
-                        <span>#${guide.id}</span>
+                        <span>Lote Creado:</span>
+                        <span>#${batch.batchNumber}</span>
                     </div>
+                    <div class="detail-item">
+                        <span>Estado del Lote:</span>
+                        <span>Recibido</span>
+                    </div>
+                    ` : ''}
                     <div class="detail-item">
                         <span>Fecha y Hora:</span>
                         <span>${new Date().toLocaleString('es-ES')}</span>
@@ -1358,9 +1746,14 @@ class Reception {
                 </div>
                 
                 <div class="confirmation-actions">
-                    <button class="btn btn-secondary" onclick="Reception.printGuide(${guide.id})">
-                        🖨️ Imprimir Guía
+                    ${batch ? `
+                    <button class="btn btn-secondary" onclick="Reception.printBatchReport(${batch.id})">
+                        🖨️ Imprimir Reporte
                     </button>
+                    <button class="btn btn-info" onclick="Navigation.loadPage('control'); app.closeModal('dynamic-modal')">
+                        ⚙️ Ver en Control Interno
+                    </button>
+                    ` : ''}
                     <button class="btn btn-primary" onclick="Reception.newReception()">
                         ➕ Nueva Recepción
                     </button>
@@ -1374,9 +1767,9 @@ class Reception {
         app.showModal('Recepción Exitosa', content);
     }
 
-    static printGuide(guideId) {
-        // Simular impresión de guía
-        app.showSuccessMessage('Guía enviada a impresión');
+    static printBatchReport(batchId) {
+        // Simular impresión de reporte del lote
+        app.showSuccessMessage('Reporte del lote enviado a impresión');
         app.closeModal('dynamic-modal');
     }
 
@@ -1999,6 +2392,42 @@ class Reception {
                 border-top: 1px solid #e2e8f0;
                 background: #f7fafc;
             }
+            
+            /* Estilos para prendas del lote */
+            .garment-item.batch-item-pending {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+            }
+            
+            .batch-badge {
+                background: #f59e0b;
+                color: white;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                margin-left: 8px;
+                font-weight: 500;
+            }
+            
+            .garment-details .incomplete {
+                color: #dc2626;
+                font-weight: 500;
+                background: #fef2f2;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 12px;
+            }
+            
+            .garment-status.incomplete {
+                color: #dc2626;
+                font-size: 12px;
+                font-weight: 500;
+                margin-top: 5px;
+                padding: 4px 8px;
+                background: #fef2f2;
+                border-radius: 4px;
+                border: 1px solid #fecaca;
+            }
             .step-navigation {
                 text-align: center;
                 margin-top: 30px;
@@ -2342,6 +2771,202 @@ class Reception {
                 
                 .c72-controls .col-md-6 {
                     padding: 0 0 15px 0;
+                }
+            }
+            
+            /* === ESTILOS PARA MODAL DE DETALLES DEL LOTE === */
+            
+            .batch-details-modal {
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            
+            .batch-header {
+                text-align: center;
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            
+            .batch-header h4 {
+                color: #2d3748;
+                margin-bottom: 8px;
+                font-weight: 600;
+            }
+            
+            .batch-info-section {
+                margin-bottom: 25px;
+            }
+            
+            .batch-summary-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+            }
+            
+            .batch-summary-card h6 {
+                color: white;
+                margin-bottom: 15px;
+                font-weight: 600;
+                font-size: 16px;
+            }
+            
+            .batch-stats {
+                display: flex;
+                justify-content: space-around;
+                gap: 20px;
+            }
+            
+            .batch-stats .stat-item {
+                text-align: center;
+            }
+            
+            .batch-stats .stat-number {
+                display: block;
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            
+            .batch-stats .stat-label {
+                display: block;
+                font-size: 12px;
+                opacity: 0.9;
+                font-weight: 500;
+            }
+            
+            .batch-details-form {
+                background: #f8fafc;
+                border-radius: 8px;
+                padding: 25px;
+                margin-bottom: 25px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .batch-details-form h6 {
+                color: #2d3748;
+                margin-bottom: 20px;
+                font-weight: 600;
+                font-size: 16px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            
+            .batch-details-form .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .batch-details-form .form-label {
+                font-weight: 600;
+                color: #4a5568;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            
+            .batch-details-form .form-control {
+                border: 2px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 10px 12px;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+            
+            .batch-details-form .form-control:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            
+            .batch-preview {
+                background: #f7fafc;
+                border-radius: 8px;
+                padding: 20px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .batch-preview h6 {
+                color: #2d3748;
+                margin-bottom: 15px;
+                font-weight: 600;
+                font-size: 16px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            
+            .preview-items {
+                max-height: 200px;
+                overflow-y: auto;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 15px;
+            }
+            
+            .preview-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid #f1f5f9;
+            }
+            
+            .preview-item:last-child {
+                border-bottom: none;
+            }
+            
+            .preview-rfid {
+                font-family: monospace;
+                font-weight: bold;
+                color: #667eea;
+                font-size: 13px;
+            }
+            
+            .preview-details {
+                color: #4a5568;
+                font-size: 13px;
+                font-style: italic;
+            }
+            
+            .preview-more {
+                text-align: center;
+                color: #718096;
+                font-style: italic;
+                padding: 10px 0;
+                border-top: 1px solid #e2e8f0;
+                margin-top: 10px;
+            }
+            
+            /* Responsive para modal */
+            @media (max-width: 768px) {
+                .batch-stats {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+                
+                .batch-stats .stat-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 6px;
+                }
+                
+                .batch-stats .stat-number {
+                    margin-bottom: 0;
+                    font-size: 20px;
+                }
+                
+                .batch-details-form .row .col-md-6,
+                .batch-details-form .row .col-md-4 {
+                    margin-bottom: 15px;
+                }
+                
+                .preview-item {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 5px;
                 }
             }
         `;
