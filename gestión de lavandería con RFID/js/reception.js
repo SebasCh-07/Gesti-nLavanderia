@@ -200,10 +200,20 @@ class Reception {
                         </div>
                     </div>
 
-                    <!-- Escáner RFID simulado -->
+                    <!-- Escáner RFID Integrado -->
                     <div class="scanner-section">
-                        <h4>🔍 Escáner RFID</h4>
-                        <div class="scanner-interface">
+                        <div class="scanner-tabs">
+                            <button class="scanner-tab active" onclick="Reception.switchScannerMode('manual')" id="manual-tab">
+                                📝 Manual
+                            </button>
+                            <button class="scanner-tab" onclick="Reception.switchScannerMode('c72')" id="c72-tab">
+                                📡 C72 RFID
+                            </button>
+                        </div>
+
+                        <!-- Modo Manual -->
+                        <div id="manual-scanner" class="scanner-interface">
+                            <h4>🔍 Escáner Manual</h4>
                             <div class="scanner-status">
                                 <span class="scanner-light active"></span>
                                 <span>PDT Lista para escanear</span>
@@ -233,6 +243,89 @@ class Reception {
                                     <button class="btn btn-sm btn-warning" onclick="Reception.generateRFID()">
                                         🎲 Generar RFID
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modo C72 RFID -->
+                        <div id="c72-scanner" class="scanner-interface" style="display: none;">
+                            <h4>📡 C72 UHF RFID Reader</h4>
+                            
+                            <!-- Estado del C72 -->
+                            <div class="c72-status-section">
+                                <div class="device-info-compact mb-3">
+                                    <small class="text-muted">
+                                        <strong>C72 UHF RFID</strong> | 
+                                        <span class="text-info">860-960 MHz</span> | 
+                                        <span class="text-success">15m alcance</span> | 
+                                        <span class="text-warning">Multi-tag/s</span>
+                                    </small>
+                                </div>
+                                
+                                <div class="device-status">
+                                    <span class="badge badge-secondary" id="c72-connection-status">
+                                        <i class="fas fa-circle"></i> Desconectado
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Controles del C72 -->
+                            <div class="c72-controls">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-2">
+                                            <label for="batch-size" class="small">Tamaño del Lote</label>
+                                            <select id="batch-size" class="form-control form-control-sm">
+                                                <option value="10">10 prendas</option>
+                                                <option value="15" selected>15 prendas</option>
+                                                <option value="20">20 prendas</option>
+                                                <option value="25">25 prendas</option>
+                                                <option value="30">30 prendas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-2">
+                                            <label class="small">Estado</label>
+                                            <div class="device-status-badge">
+                                                <span class="badge badge-secondary" id="c72-status-badge">
+                                                    <i class="fas fa-circle"></i> Desconectado
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Botones de Control -->
+                                <div class="form-actions-compact">
+                                    <button class="btn btn-success btn-sm" onclick="Reception.connectC72()">
+                                        <i class="fas fa-plug"></i> Conectar
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" onclick="Reception.startBatchScan()">
+                                        <i class="fas fa-play"></i> Escanear Lote
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="Reception.scanSingleTag()">
+                                        <i class="fas fa-search"></i> Individual
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" onclick="Reception.disconnectC72()">
+                                        <i class="fas fa-unlink"></i> Desconectar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Estado del Escaneo C72 -->
+                            <div class="c72-scan-status" id="c72-scan-status-container">
+                                <div id="c72-scan-status"></div>
+                                <div id="c72-scan-progress"></div>
+                                <div id="c72-scan-complete"></div>
+                                <div id="c72-error"></div>
+                            </div>
+
+                            <!-- Tags Detectados -->
+                            <div class="c72-tags-section">
+                                <h6>🏷️ Tags Detectados: <span class="badge badge-primary badge-sm" id="tags-count">0 tags</span></h6>
+                                <div id="c72-tags-list" class="tags-list-compact">
+                                    <p class="text-muted text-center small mb-0">No hay tags detectados</p>
                                 </div>
                             </div>
                         </div>
@@ -488,6 +581,353 @@ class Reception {
     static init() {
         this.resetReception();
         this.addReceptionStyles();
+        this.initializeC72();
+    }
+
+    // === MÉTODOS DEL SIMULADOR C72 INTEGRADO ===
+    
+    // Variables del C72
+    static c72Connected = false;
+    static scannedTags = [];
+    static currentScannerMode = 'manual';
+
+    // Inicializar C72
+    static initializeC72() {
+        this.c72Connected = false;
+        this.scannedTags = [];
+        this.currentScannerMode = 'manual';
+    }
+
+    // Cambiar modo de escáner
+    static switchScannerMode(mode) {
+        this.currentScannerMode = mode;
+        
+        // Actualizar tabs
+        document.querySelectorAll('.scanner-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(`${mode}-tab`).classList.add('active');
+        
+        // Mostrar/ocultar interfaces
+        document.getElementById('manual-scanner').style.display = mode === 'manual' ? 'block' : 'none';
+        document.getElementById('c72-scanner').style.display = mode === 'c72' ? 'block' : 'none';
+        
+        console.log(`Modo de escáner cambiado a: ${mode}`);
+    }
+
+    // Conectar C72
+    static connectC72() {
+        this.c72Connected = true;
+        this.showC72ConnectionStatus('Conectado', 'success');
+        console.log('🔌 C72 RFID Reader conectado');
+    }
+
+    // Desconectar C72
+    static disconnectC72() {
+        this.c72Connected = false;
+        this.scannedTags = [];
+        this.showC72ConnectionStatus('Desconectado', 'error');
+        this.clearC72Results();
+        console.log('🔌 C72 RFID Reader desconectado');
+    }
+
+    // Mostrar estado de conexión C72
+    static showC72ConnectionStatus(message, type) {
+        const badge = document.getElementById('c72-connection-status');
+        const statusBadge = document.getElementById('c72-status-badge');
+        
+        if (badge) {
+            badge.className = `badge badge-${type === 'success' ? 'success' : 'danger'}`;
+            badge.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i> ${message}`;
+        }
+        
+        if (statusBadge) {
+            statusBadge.className = `badge badge-${type === 'success' ? 'success' : 'danger'}`;
+            statusBadge.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i> ${message}`;
+        }
+    }
+
+    // Escaneo masivo de lotes C72
+    static async startBatchScan() {
+        if (!this.c72Connected) {
+            this.showC72Error('Dispositivo no conectado. Conecte el C72 primero.');
+            return;
+        }
+
+        const batchSize = parseInt(document.getElementById('batch-size').value);
+        this.scannedTags = [];
+        this.clearC72TagsList();
+        this.showC72ScanningStatus(true, 'Escaneando lote...');
+
+        // Simular lectura de múltiples tags RFID UHF
+        for (let i = 1; i <= batchSize; i++) {
+            const tag = {
+                id: `E20000112213040000000${String(i).padStart(3, '0')}`,
+                rssi: Math.floor(Math.random() * 20) + 60,
+                timestamp: new Date().toISOString(),
+                antenna: Math.floor(Math.random() * 4) + 1,
+                frequency: 915.25 + (Math.random() * 0.5)
+            };
+
+            this.scannedTags.push(tag);
+            this.updateC72ScanProgress(i, batchSize);
+            this.updateC72TagsCount();
+            
+            // Simular velocidad de lectura real
+            await this.delay(100);
+        }
+
+        // Mostrar todos los tags detectados al final
+        this.showAllC72DetectedTags();
+
+        this.showC72ScanningStatus(false);
+        this.showC72ScanComplete();
+        this.updateC72TagsCount();
+    }
+
+    // Escaneo individual C72
+    static async scanSingleTag() {
+        if (!this.c72Connected) {
+            this.showC72Error('Dispositivo no conectado. Conecte el C72 primero.');
+            return;
+        }
+
+        this.showC72ScanningStatus(true, 'Escaneando...');
+        await this.delay(500);
+        
+        const tag = {
+            id: `E20000112213040000000${Math.floor(Math.random() * 999) + 1}`,
+            rssi: Math.floor(Math.random() * 20) + 60,
+            timestamp: new Date().toISOString(),
+            antenna: 1,
+            frequency: 915.25
+        };
+
+        this.scannedTags.push(tag);
+        this.showC72ScanningStatus(false);
+        this.showC72TagDetected(tag);
+        this.updateC72TagsCount();
+    }
+
+    // Mostrar estado de escaneo C72
+    static showC72ScanningStatus(isScanning, message = 'Escaneando...') {
+        const statusDiv = document.getElementById('c72-scan-status');
+        if (statusDiv) {
+            if (isScanning) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-info alert-sm">
+                        <i class="fas fa-sync-alt fa-spin"></i>
+                        ${message}
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = '';
+            }
+        }
+    }
+
+    // Mostrar progreso del escaneo C72
+    static updateC72ScanProgress(current, total) {
+        const progressDiv = document.getElementById('c72-scan-progress');
+        if (progressDiv) {
+            const percentage = Math.round((current / total) * 100);
+            progressDiv.innerHTML = `
+                <div class="progress-container mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">Progreso del escaneo</small>
+                        <small class="text-primary"><strong>${current}/${total} tags</strong></small>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Limpiar lista de tags C72
+    static clearC72TagsList() {
+        const tagsList = document.getElementById('c72-tags-list');
+        if (tagsList) {
+            tagsList.innerHTML = '<p class="text-muted text-center small mb-0">Escaneando tags...</p>';
+        }
+    }
+
+    // Mostrar todos los tags detectados C72
+    static showAllC72DetectedTags() {
+        const tagsList = document.getElementById('c72-tags-list');
+        if (tagsList && this.scannedTags.length > 0) {
+            tagsList.innerHTML = '';
+            
+            this.scannedTags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'tag-item-compact mb-1 p-2 border rounded';
+                tagElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="text-primary small">${tag.id}</strong>
+                            <small class="text-muted d-block" style="font-size: 10px;">RSSI: ${tag.rssi}dB | Ant: ${tag.antenna} | ${new Date(tag.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                        <span class="badge badge-success badge-sm">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    </div>
+                `;
+                tagsList.appendChild(tagElement);
+            });
+            
+            tagsList.scrollTop = tagsList.scrollHeight;
+        }
+    }
+
+    // Mostrar tag detectado individual C72
+    static showC72TagDetected(tag) {
+        const tagsList = document.getElementById('c72-tags-list');
+        if (tagsList) {
+            if (tagsList.querySelector('.text-muted')) {
+                tagsList.innerHTML = '';
+            }
+
+            const tagElement = document.createElement('div');
+            tagElement.className = 'tag-item-compact mb-1 p-2 border rounded';
+            tagElement.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="text-primary small">${tag.id}</strong>
+                        <small class="text-muted d-block" style="font-size: 10px;">RSSI: ${tag.rssi}dB | Ant: ${tag.antenna} | ${new Date(tag.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                    <span class="badge badge-success badge-sm">
+                        <i class="fas fa-check"></i>
+                    </span>
+                </div>
+            `;
+            tagsList.appendChild(tagElement);
+            tagsList.scrollTop = tagsList.scrollHeight;
+        }
+    }
+
+    // Mostrar escaneo completado C72
+    static showC72ScanComplete() {
+        const completeDiv = document.getElementById('c72-scan-complete');
+        if (completeDiv) {
+            completeDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Escaneo completado!</strong>
+                    Se detectaron ${this.scannedTags.length} tags RFID
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary btn-sm" onclick="Reception.createGarmentsFromC72Scan()">
+                        <i class="fas fa-plus"></i> Crear Prendas desde Tags
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Mostrar error C72
+    static showC72Error(message) {
+        const errorDiv = document.getElementById('c72-error');
+        if (errorDiv) {
+            errorDiv.innerHTML = `
+                <div class="alert alert-danger alert-sm">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    ${message}
+                </div>
+            `;
+        }
+    }
+
+    // Actualizar contador de tags C72
+    static updateC72TagsCount() {
+        const countElement = document.getElementById('tags-count');
+        if (countElement) {
+            countElement.textContent = `${this.scannedTags.length} tags`;
+        }
+    }
+
+    // Limpiar resultados C72
+    static clearC72Results() {
+        this.scannedTags = [];
+        const tagsList = document.getElementById('c72-tags-list');
+        if (tagsList) {
+            tagsList.innerHTML = '<p class="text-muted text-center small mb-0">No hay tags detectados</p>';
+        }
+        
+        const progressDiv = document.getElementById('c72-scan-progress');
+        if (progressDiv) progressDiv.innerHTML = '';
+        
+        const completeDiv = document.getElementById('c72-scan-complete');
+        if (completeDiv) completeDiv.innerHTML = '';
+        
+        const errorDiv = document.getElementById('c72-error');
+        if (errorDiv) errorDiv.innerHTML = '';
+
+        this.updateC72TagsCount();
+    }
+
+    // Crear prendas desde el escaneo C72
+    static createGarmentsFromC72Scan() {
+        if (this.scannedTags.length === 0) {
+            this.showC72Error('No hay tags escaneados para crear prendas');
+            return;
+        }
+
+        if (!this.selectedClient) {
+            this.showC72Error('No hay cliente seleccionado');
+            return;
+        }
+
+        // Crear prendas para cada tag escaneado
+        let createdCount = 0;
+        this.scannedTags.forEach(tag => {
+            // Verificar si ya existe
+            if (this.scannedGarments.find(g => g.rfidCode === tag.id)) {
+                return; // Skip si ya existe
+            }
+
+            const garment = {
+                rfidCode: tag.id,
+                type: 'Prenda RFID',
+                color: 'Sin especificar',
+                size: 'Sin especificar',
+                condition: 'bueno',
+                notes: `Creada desde escaneo C72 - ${new Date().toLocaleString()}`
+            };
+
+            this.scannedGarments.push(garment);
+            createdCount++;
+        });
+
+        // Actualizar la lista de prendas
+        this.refreshGarmentsList();
+        
+        // Mostrar botones de acción si hay prendas
+        if (this.scannedGarments.length > 0) {
+            this.showActionButtons();
+        }
+
+        // Mostrar resultado
+        this.showC72Success(`Se agregaron ${createdCount} prendas desde el escaneo C72`);
+        
+        // Limpiar escaneo C72
+        this.clearC72Results();
+    }
+
+    // Mostrar mensaje de éxito C72
+    static showC72Success(message) {
+        const successDiv = document.getElementById('c72-scan-complete');
+        if (successDiv) {
+            successDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <i class="fas fa-check-circle"></i>
+                    ${message}
+                </div>
+            `;
+        }
+    }
+
+    // Utilidad para delays
+    static delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     static resetReception() {
@@ -1713,6 +2153,196 @@ class Reception {
             
             #floating-action-buttons.hiding {
                 animation: slideOutDown 0.3s ease-in;
+            }
+            
+            /* === ESTILOS PARA SIMULADOR C72 INTEGRADO === */
+            
+            .scanner-tabs {
+                display: flex;
+                border-bottom: 2px solid #e2e8f0;
+                margin-bottom: 20px;
+            }
+            
+            .scanner-tab {
+                flex: 1;
+                padding: 12px 20px;
+                background: #f7fafc;
+                border: none;
+                border-bottom: 3px solid transparent;
+                color: #718096;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .scanner-tab:hover {
+                background: #edf2f7;
+                color: #4a5568;
+            }
+            
+            .scanner-tab.active {
+                background: white;
+                color: #667eea;
+                border-bottom-color: #667eea;
+                font-weight: 600;
+            }
+            
+            .c72-status-section {
+                background: #f8fafc;
+                border: 2px dashed #cbd5e0;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .device-info-compact {
+                text-align: center;
+                padding: 10px;
+                background: #edf2f7;
+                border-radius: 6px;
+                margin-bottom: 15px;
+            }
+            
+            .device-info-compact small {
+                font-weight: 500;
+            }
+            
+            .device-status {
+                text-align: center;
+                margin-bottom: 15px;
+            }
+            
+            .c72-controls {
+                background: #f7fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .form-actions-compact {
+                display: flex;
+                gap: 8px;
+                justify-content: center;
+                flex-wrap: wrap;
+                margin-top: 15px;
+            }
+            
+            .form-actions-compact .btn {
+                font-size: 13px;
+                padding: 8px 12px;
+                min-width: 100px;
+            }
+            
+            .c72-scan-status {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .c72-tags-section {
+                background: #f7fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            
+            .c72-tags-section h6 {
+                margin-bottom: 15px;
+                color: #2d3748;
+                font-weight: 600;
+            }
+            
+            .tags-list-compact {
+                max-height: 200px;
+                overflow-y: auto;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 10px;
+            }
+            
+            .tag-item-compact {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 4px;
+                padding: 8px;
+                margin-bottom: 8px;
+                transition: all 0.2s;
+            }
+            
+            .tag-item-compact:hover {
+                background: #f7fafc;
+                border-color: #cbd5e0;
+            }
+            
+            .tag-item-compact:last-child {
+                margin-bottom: 0;
+            }
+            
+            .progress-container {
+                background: white;
+                border-radius: 4px;
+                padding: 8px;
+            }
+            
+            .progress {
+                height: 8px;
+                background: #e2e8f0;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            
+            .progress-bar {
+                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                height: 100%;
+                transition: width 0.3s ease;
+            }
+            
+            .alert-sm {
+                padding: 8px 12px;
+                font-size: 13px;
+                border-radius: 4px;
+            }
+            
+            .badge-sm {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            
+            /* Responsive para móviles */
+            @media (max-width: 768px) {
+                .scanner-tabs {
+                    flex-direction: column;
+                }
+                
+                .scanner-tab {
+                    border-bottom: 1px solid #e2e8f0;
+                    border-right: none;
+                }
+                
+                .scanner-tab.active {
+                    border-bottom-color: #e2e8f0;
+                    border-left: 3px solid #667eea;
+                }
+                
+                .form-actions-compact {
+                    flex-direction: column;
+                }
+                
+                .form-actions-compact .btn {
+                    width: 100%;
+                }
+                
+                .c72-controls .row {
+                    margin: 0;
+                }
+                
+                .c72-controls .col-md-6 {
+                    padding: 0 0 15px 0;
+                }
             }
         `;
         
