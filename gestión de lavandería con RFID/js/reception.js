@@ -2729,9 +2729,19 @@ class Reception {
             
             /* === ESTILOS PARA MODAL DE DETALLES DEL LOTE === */
             
+            /* Ampliar modal de los lados */
+            #dynamic-modal .modal-content {
+                width: 92%;
+                max-width: 1100px;
+            }
+            #dynamic-modal .modal-body {
+                padding: 24px;
+            }
+            
             .batch-details-modal {
                 max-height: 85vh;
                 overflow-y: auto;
+                padding-right: 6px;
             }
             
             .batch-header {
@@ -2793,7 +2803,7 @@ class Reception {
             .batch-details-form {
                 background: #f8fafc;
                 border-radius: 8px;
-                padding: 25px;
+                padding: 30px;
                 margin-bottom: 25px;
                 border: 1px solid #e2e8f0;
             }
@@ -2808,7 +2818,11 @@ class Reception {
             }
             
             .batch-details-form .form-group {
-                margin-bottom: 20px;
+                margin-bottom: 18px;
+            }
+            .batch-details-form .form-section {
+                padding-top: 4px;
+                margin-bottom: 24px;
             }
             
             .batch-details-form .form-label {
@@ -2913,7 +2927,7 @@ class Reception {
                 
                 .batch-details-form .row .col-md-6,
                 .batch-details-form .row .col-md-4 {
-                    margin-bottom: 15px;
+                    margin-bottom: 16px;
                 }
                 
                 .preview-item {
