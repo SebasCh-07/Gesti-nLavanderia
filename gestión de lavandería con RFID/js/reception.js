@@ -202,53 +202,8 @@ class Reception {
 
                     <!-- Escáner RFID Integrado -->
                     <div class="scanner-section">
-                        <div class="scanner-tabs">
-                            <button class="scanner-tab active" onclick="Reception.switchScannerMode('manual')" id="manual-tab">
-                                📝 Manual
-                            </button>
-                            <button class="scanner-tab" onclick="Reception.switchScannerMode('c72')" id="c72-tab">
-                                📡 C72 RFID
-                            </button>
-                        </div>
-
-                        <!-- Modo Manual -->
-                        <div id="manual-scanner" class="scanner-interface">
-                            <h4>🔍 Escáner Manual</h4>
-                            <div class="scanner-status">
-                                <span class="scanner-light active"></span>
-                                <span>PDT Lista para escanear</span>
-                            </div>
-                            
-                            <div class="manual-input">
-                                <label>Código RFID Manual:</label>
-                                <div class="rfid-input-group">
-                                    <input type="text" 
-                                           id="rfid-input" 
-                                           class="form-control" 
-                                           placeholder="RFID001, RFID002..."
-                                           onkeypress="Reception.handleRFIDInput(event)">
-                                    <button class="btn btn-primary" onclick="Reception.addGarmentManually()">
-                                        ➕ Agregar
-                                    </button>
-                                </div>
-                                <small class="text-muted">Simula el escaneo manual de etiquetas RFID</small>
-                            </div>
-
-                            <div class="quick-scan-options">
-                                <h5>Escaneo Rápido:</h5>
-                                <div class="quick-buttons">
-                                    <button class="btn btn-sm btn-info" onclick="Reception.simulateBulkScan()">
-                                        📦 Lote de 5 prendas
-                                    </button>
-                                    <button class="btn btn-sm btn-warning" onclick="Reception.generateRFID()">
-                                        🎲 Generar RFID
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Modo C72 RFID -->
-                        <div id="c72-scanner" class="scanner-interface" style="display: none;">
+                        <div id="c72-scanner" class="scanner-interface">
                             <h4>📡 C72 UHF RFID Reader</h4>
                             
                             <!-- Estado del C72 -->
@@ -274,14 +229,13 @@ class Reception {
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <div class="form-group mb-2">
-                                            <label for="batch-size" class="small">Tamaño del Lote</label>
-                                            <select id="batch-size" class="form-control form-control-sm">
-                                                <option value="10">10 prendas</option>
-                                                <option value="15" selected>15 prendas</option>
-                                                <option value="20">20 prendas</option>
-                                                <option value="25">25 prendas</option>
-                                                <option value="30">30 prendas</option>
-                                            </select>
+                                            <label class="small">Tamaño del Lote</label>
+                                            <div class="batch-size-display">
+                                                <span class="badge badge-info" id="auto-batch-size">
+                                                    <i class="fas fa-magic"></i> Detección Automática
+                                                </span>
+                                                <small class="text-muted d-block mt-1">Se detectará automáticamente al escanear</small>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -605,23 +559,9 @@ class Reception {
     static initializeC72() {
         this.c72Connected = false;
         this.scannedTags = [];
-        this.currentScannerMode = 'manual';
+        this.currentScannerMode = 'c72';
     }
 
-    // Cambiar modo de escáner
-    static switchScannerMode(mode) {
-        this.currentScannerMode = mode;
-        
-        // Actualizar tabs
-        document.querySelectorAll('.scanner-tab').forEach(tab => tab.classList.remove('active'));
-        document.getElementById(`${mode}-tab`).classList.add('active');
-        
-        // Mostrar/ocultar interfaces
-        document.getElementById('manual-scanner').style.display = mode === 'manual' ? 'block' : 'none';
-        document.getElementById('c72-scanner').style.display = mode === 'c72' ? 'block' : 'none';
-        
-        console.log(`Modo de escáner cambiado a: ${mode}`);
-    }
 
     // Conectar C72
     static connectC72() {
@@ -655,6 +595,15 @@ class Reception {
         }
     }
 
+    // Actualizar visualización del tamaño del lote
+    static updateBatchSizeDisplay(message, type = 'info') {
+        const batchSizeDisplay = document.getElementById('auto-batch-size');
+        if (batchSizeDisplay) {
+            batchSizeDisplay.className = `badge badge-${type}`;
+            batchSizeDisplay.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'clock' : 'magic'}"></i> ${message}`;
+        }
+    }
+
     // Escaneo masivo de lotes C72
     static async startBatchScan() {
         if (!this.c72Connected) {
@@ -662,27 +611,46 @@ class Reception {
             return;
         }
 
-        const batchSize = parseInt(document.getElementById('batch-size').value);
         this.scannedTags = [];
         this.clearC72TagsList();
         this.showC72ScanningStatus(true, 'Escaneando lote...');
+        this.updateBatchSizeDisplay('Escaneando...', 'warning');
 
-        // Simular lectura de múltiples tags RFID UHF
-        for (let i = 1; i <= batchSize; i++) {
-            const tag = {
-                id: `E20000112213040000000${String(i).padStart(3, '0')}`,
-                rssi: Math.floor(Math.random() * 20) + 60,
-                timestamp: new Date().toISOString(),
-                antenna: Math.floor(Math.random() * 4) + 1,
-                frequency: 915.25 + (Math.random() * 0.5)
-            };
-
-            this.scannedTags.push(tag);
-            this.updateC72ScanProgress(i, batchSize);
-            this.updateC72TagsCount();
+        // Simular detección automática continua de tags RFID UHF
+        let tagCount = 0;
+        let maxScanTime = 10000; // 10 segundos máximo de escaneo
+        let scanStartTime = Date.now();
+        
+        // Simular detección automática con tiempo variable
+        while (Date.now() - scanStartTime < maxScanTime) {
+            // Simular detección de 1-3 tags por iteración
+            const tagsInThisRound = Math.floor(Math.random() * 3) + 1;
             
-            // Simular velocidad de lectura real
-            await this.delay(100);
+            for (let i = 0; i < tagsInThisRound; i++) {
+                tagCount++;
+                const tag = {
+                    id: `E20000112213040000000${String(tagCount).padStart(3, '0')}`,
+                    rssi: Math.floor(Math.random() * 20) + 60,
+                    timestamp: new Date().toISOString(),
+                    antenna: Math.floor(Math.random() * 4) + 1,
+                    frequency: 915.25 + (Math.random() * 0.5)
+                };
+
+                this.scannedTags.push(tag);
+                this.updateC72TagsCount();
+                this.updateBatchSizeDisplay(`${tagCount} prendas detectadas`, 'info');
+                
+                // Simular velocidad de lectura real
+                await this.delay(200);
+            }
+            
+            // Simular pausa entre rondas de detección
+            await this.delay(300);
+            
+            // Si no se detectan más tags en un tiempo, terminar
+            if (Math.random() < 0.3) { // 30% de probabilidad de terminar en cada ronda
+                break;
+            }
         }
 
         // Mostrar todos los tags detectados al final
@@ -691,6 +659,7 @@ class Reception {
         this.showC72ScanningStatus(false);
         this.showC72ScanComplete();
         this.updateC72TagsCount();
+        this.updateBatchSizeDisplay(`${tagCount} prendas detectadas`, 'success');
 
         // Automáticamente agregar tags a prendas escaneadas y abrir modal
         this.addBatchToGarmentsAndShowModal();
@@ -995,21 +964,21 @@ class Reception {
         const modalContent = `
             <div class="batch-details-modal">
                 <div class="batch-header">
-                    <h4>📦 Detalles del Lote</h4>
+                    <h4>📦 Registro de Lote de Prendas</h4>
                     <p class="text-muted">${batchItems.length} prendas escaneadas con C72 RFID</p>
                 </div>
                 
                 <div class="batch-info-section">
                     <div class="batch-summary-card">
-                        <h6>📊 Resumen del Lote</h6>
+                        <h6>📊 Información del Lote</h6>
                         <div class="batch-stats">
                             <div class="stat-item">
                                 <span class="stat-number">${batchItems.length}</span>
                                 <span class="stat-label">Prendas</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-number">${this.scannedTags.length}</span>
-                                <span class="stat-label">Tags RFID</span>
+                                <span class="stat-number">${new Date().toLocaleDateString()}</span>
+                                <span class="stat-label">Fecha</span>
                             </div>
                             <div class="stat-item">
                                 <span class="stat-number">C72</span>
@@ -1020,106 +989,166 @@ class Reception {
                 </div>
 
                 <div class="batch-details-form">
-                    <h6>🔧 Configurar Detalles del Lote</h6>
+                    <h6>📋 Información General del Lote</h6>
                     <form id="batch-details-form">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Tipo de Prendas *</label>
-                                    <select id="batch-type" class="form-control" required>
-                                        <option value="">Seleccionar tipo...</option>
-                                        <option value="Camisa">Camisa</option>
-                                        <option value="Pantalón">Pantalón</option>
-                                        <option value="Buzo">Buzo</option>
-                                        <option value="Vestido">Vestido</option>
-                                        <option value="Falda">Falda</option>
-                                        <option value="Chaqueta">Chaqueta</option>
-                                        <option value="Abrigo">Abrigo</option>
-                                        <option value="Uniforme">Uniforme</option>
-                                        <option value="Otro">Otro</option>
-                                    </select>
+                        <!-- Información de Recepción -->
+                        <div class="form-section">
+                            <h6 class="section-title">🚚 Estado de Recepción</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Estado de Llegada *</label>
+                                        <select id="batch-arrival-status" class="form-control" required>
+                                            <option value="">Seleccionar estado...</option>
+                                            <option value="limpio">Limpio y ordenado</option>
+                                            <option value="manchado">Con manchas</option>
+                                            <option value="húmedo">Húmedo</option>
+                                            <option value="arrugado">Arrugado</option>
+                                            <option value="mal-olor">Con mal olor</option>
+                                            <option value="dañado">Con daños</option>
+                                            <option value="incompleto">Lote incompleto</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Color Predominante *</label>
-                                    <input type="text" id="batch-color" class="form-control" 
-                                           placeholder="Ej: Blanco, Azul, Negro, Gris..." required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="form-label">Talla Principal</label>
-                                    <select id="batch-size" class="form-control">
-                                        <option value="">Talla principal...</option>
-                                        <option value="XS">XS</option>
-                                        <option value="S">S</option>
-                                        <option value="M">M</option>
-                                        <option value="L">L</option>
-                                        <option value="XL">XL</option>
-                                        <option value="XXL">XXL</option>
-                                        <option value="Mixto">Mixto</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="form-label">Condición General</label>
-                                    <select id="batch-condition" class="form-control">
-                                        <option value="bueno" selected>Bueno</option>
-                                        <option value="regular">Regular</option>
-                                        <option value="delicado">Delicado</option>
-                                        <option value="manchado">Manchado</option>
-                                        <option value="roto">Roto</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="form-label">Tipo de Servicio</label>
-                                    <select id="batch-service" class="form-control">
-                                        <option value="normal" selected>Lavado Normal</option>
-                                        <option value="express">Servicio Express</option>
-                                        <option value="delicate">Prendas Delicadas</option>
-                                        <option value="dry-clean">Lavado en Seco</option>
-                                    </select>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Condición General *</label>
+                                        <select id="batch-condition" class="form-control" required>
+                                            <option value="">Seleccionar condición...</option>
+                                            <option value="excelente">Excelente</option>
+                                            <option value="bueno">Bueno</option>
+                                            <option value="regular">Regular</option>
+                                            <option value="delicado">Delicado</option>
+                                            <option value="crítico">Crítico</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Marca o Origen</label>
-                                    <input type="text" id="batch-brand" class="form-control" 
-                                           placeholder="Ej: Empresa, Cliente específico, etc.">
+                        <!-- Información del Servicio -->
+                        <div class="form-section">
+                            <h6 class="section-title">🧽 Tipo de Servicio</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Servicio Principal *</label>
+                                        <select id="batch-service" class="form-control" required>
+                                            <option value="">Seleccionar servicio...</option>
+                                            <option value="lavado-normal">Lavado Normal</option>
+                                            <option value="lavado-delicado">Lavado Delicado</option>
+                                            <option value="lavado-seco">Lavado en Seco</option>
+                                            <option value="planchado">Solo Planchado</option>
+                                            <option value="express">Servicio Express</option>
+                                            <option value="urgente">Servicio Urgente</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Prioridad del Lote</label>
-                                    <select id="batch-priority" class="form-control">
-                                        <option value="normal" selected>Normal</option>
-                                        <option value="alta">Alta</option>
-                                        <option value="urgente">Urgente</option>
-                                    </select>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Prioridad *</label>
+                                        <select id="batch-priority" class="form-control" required>
+                                            <option value="">Seleccionar prioridad...</option>
+                                            <option value="baja">Baja</option>
+                                            <option value="normal">Normal</option>
+                                            <option value="alta">Alta</option>
+                                            <option value="urgente">Urgente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Fecha de Entrega</label>
+                                        <input type="date" id="batch-delivery-date" class="form-control" 
+                                               min="${new Date().toISOString().split('T')[0]}">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Descripción del Lote</label>
-                            <textarea id="batch-description" class="form-control" rows="3" 
-                                      placeholder="Descripción detallada del lote, instrucciones especiales, observaciones..."></textarea>
+                        <!-- Información del Cliente/Lote -->
+                        <div class="form-section">
+                            <h6 class="section-title">👤 Información del Lote</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Tipo de Prendas *</label>
+                                        <select id="batch-type" class="form-control" required>
+                                            <option value="">Seleccionar tipo...</option>
+                                            <option value="uniforme-empresarial">Uniforme Empresarial</option>
+                                            <option value="uniforme-médico">Uniforme Médico</option>
+                                            <option value="uniforme-escolar">Uniforme Escolar</option>
+                                            <option value="ropa-hotel">Ropa de Hotel</option>
+                                            <option value="ropa-restaurante">Ropa de Restaurante</option>
+                                            <option value="ropa-industrial">Ropa Industrial</option>
+                                            <option value="ropa-deportiva">Ropa Deportiva</option>
+                                            <option value="ropa-mixta">Ropa Mixta</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Color Predominante *</label>
+                                        <select id="batch-color" class="form-control" required>
+                                            <option value="">Seleccionar color...</option>
+                                            <option value="blanco">Blanco</option>
+                                            <option value="negro">Negro</option>
+                                            <option value="azul">Azul</option>
+                                            <option value="gris">Gris</option>
+                                            <option value="verde">Verde</option>
+                                            <option value="rojo">Rojo</option>
+                                            <option value="amarillo">Amarillo</option>
+                                            <option value="mixto">Mixto</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Notas Adicionales</label>
-                            <textarea id="batch-notes" class="form-control" rows="2" 
-                                      placeholder="Notas específicas para todas las prendas del lote..."></textarea>
+                        <!-- Instrucciones Especiales -->
+                        <div class="form-section">
+                            <h6 class="section-title">⚠️ Instrucciones Especiales</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Tratamiento Especial</label>
+                                        <select id="batch-special-treatment" class="form-control">
+                                            <option value="">Sin tratamiento especial</option>
+                                            <option value="desmanchado">Desmanchado</option>
+                                            <option value="desinfección">Desinfección</option>
+                                            <option value="blanqueado">Blanqueado</option>
+                                            <option value="suavizado">Suavizado</option>
+                                            <option value="anti-arrugas">Anti-arrugas</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Temperatura de Lavado</label>
+                                        <select id="batch-temperature" class="form-control">
+                                            <option value="fría">Fría (30°C)</option>
+                                            <option value="tibia" selected>Tibia (40°C)</option>
+                                            <option value="caliente">Caliente (60°C)</option>
+                                            <option value="muy-caliente">Muy Caliente (90°C)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="form-section">
+                            <h6 class="section-title">📝 Observaciones del Lote</h6>
+                            <div class="form-group">
+                                <label class="form-label">Observaciones de Recepción</label>
+                                <textarea id="batch-observations" class="form-control" rows="3" 
+                                          placeholder="Describe el estado del lote al llegar, manchas específicas, daños, etc..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Instrucciones Especiales</label>
+                                <textarea id="batch-special-instructions" class="form-control" rows="2" 
+                                          placeholder="Instrucciones específicas para el procesamiento de este lote..."></textarea>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1174,12 +1203,26 @@ class Reception {
     static updateBatchPreview() {
         const batchType = document.getElementById('batch-type')?.value || '';
         const batchColor = document.getElementById('batch-color')?.value || '';
-        const batchSize = document.getElementById('batch-size')?.value || '';
-        const batchCondition = document.getElementById('batch-condition')?.value || 'bueno';
+        const batchService = document.getElementById('batch-service')?.value || '';
+        const batchPriority = document.getElementById('batch-priority')?.value || '';
+        
+        // Obtener el número de prendas del lote automáticamente
+        const batchItems = this.scannedGarments.filter(g => g.isBatchItem);
+        const batchSize = batchItems.length;
 
-        const previewText = batchType && batchColor ? 
-            `${batchType} ${batchColor}${batchSize ? ` (${batchSize})` : ''}` : 
-            'Prenda RFID';
+        let previewText = 'Prenda RFID';
+        if (batchType && batchColor) {
+            previewText = `${batchType} ${batchColor}`;
+            if (batchService) {
+                previewText += ` - ${batchService}`;
+            }
+            if (batchPriority && batchPriority !== 'normal') {
+                previewText += ` [${batchPriority.toUpperCase()}]`;
+            }
+            if (batchSize > 0) {
+                previewText += ` (${batchSize} prendas)`;
+            }
+        }
 
         // Actualizar vista previa
         const previewElements = document.querySelectorAll('.preview-details');
@@ -1207,17 +1250,20 @@ class Reception {
         // Obtener datos del formulario
         const batchType = document.getElementById('batch-type')?.value;
         const batchColor = document.getElementById('batch-color')?.value;
-        const batchSize = document.getElementById('batch-size')?.value || 'Sin especificar';
-        const batchCondition = document.getElementById('batch-condition')?.value || 'bueno';
-        const batchService = document.getElementById('batch-service')?.value || 'normal';
-        const batchBrand = document.getElementById('batch-brand')?.value || '';
-        const batchPriority = document.getElementById('batch-priority')?.value || 'normal';
-        const batchDescription = document.getElementById('batch-description')?.value || '';
-        const batchNotes = document.getElementById('batch-notes')?.value || '';
+        const batchSize = batchItems.length; // Tamaño automático basado en prendas escaneadas
+        const batchCondition = document.getElementById('batch-condition')?.value;
+        const batchService = document.getElementById('batch-service')?.value;
+        const batchPriority = document.getElementById('batch-priority')?.value;
+        const batchArrivalStatus = document.getElementById('batch-arrival-status')?.value;
+        const batchDeliveryDate = document.getElementById('batch-delivery-date')?.value;
+        const batchSpecialTreatment = document.getElementById('batch-special-treatment')?.value || '';
+        const batchTemperature = document.getElementById('batch-temperature')?.value || 'tibia';
+        const batchObservations = document.getElementById('batch-observations')?.value || '';
+        const batchSpecialInstructions = document.getElementById('batch-special-instructions')?.value || '';
 
         // Validar campos obligatorios
-        if (!batchType || !batchColor) {
-            app.showErrorMessage('Tipo de prenda y color son obligatorios');
+        if (!batchType || !batchColor || !batchCondition || !batchService || !batchPriority || !batchArrivalStatus) {
+            app.showErrorMessage('Todos los campos marcados con * son obligatorios');
             return;
         }
 
@@ -1225,18 +1271,22 @@ class Reception {
         batchItems.forEach(garment => {
             garment.type = batchType;
             garment.color = batchColor;
-            garment.size = batchSize;
             garment.condition = batchCondition;
             garment.serviceType = batchService;
             garment.priority = batchPriority;
+            garment.arrivalStatus = batchArrivalStatus;
+            garment.deliveryDate = batchDeliveryDate;
+            garment.specialTreatment = batchSpecialTreatment;
+            garment.temperature = batchTemperature;
             
-            // Combinar notas
+            // Combinar notas y observaciones
             const originalNotes = garment.notes || '';
             const newNotes = [
                 originalNotes,
-                batchDescription ? `Descripción: ${batchDescription}` : '',
-                batchBrand ? `Marca/Origen: ${batchBrand}` : '',
-                batchNotes ? `Notas: ${batchNotes}` : '',
+                batchObservations ? `Observaciones: ${batchObservations}` : '',
+                batchSpecialInstructions ? `Instrucciones: ${batchSpecialInstructions}` : '',
+                batchSpecialTreatment ? `Tratamiento: ${batchSpecialTreatment}` : '',
+                `Temperatura: ${batchTemperature}`,
                 `Lote procesado con C72 RFID - ${new Date().toLocaleString()}`
             ].filter(note => note.trim()).join(' | ');
             
@@ -1378,39 +1428,7 @@ class Reception {
         Navigation.navigateTo('clients', { returnTo: 'reception' });
     }
 
-    static handleRFIDInput(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            this.addGarmentManually();
-        }
-    }
 
-    static addGarmentManually() {
-        const input = document.getElementById('rfid-input');
-        const rfidCode = input.value.trim().toUpperCase();
-
-        if (!rfidCode) {
-            app.showErrorMessage('Ingrese un código RFID válido');
-            return;
-        }
-
-        // Verificar si ya existe
-        if (this.scannedGarments.find(g => g.rfidCode === rfidCode)) {
-            app.showWarningMessage(`El código ${rfidCode} ya fue escaneado`);
-            input.value = '';
-            return;
-        }
-
-        // Verificar si ya existe en el sistema
-        const existingGarment = Storage.getGarmentByRfid(rfidCode);
-        if (existingGarment && existingGarment.status !== 'entregado') {
-            app.showErrorMessage(`El código ${rfidCode} ya está en el sistema con estado: ${existingGarment.status}`);
-            input.value = '';
-            return;
-        }
-
-        this.openGarmentDetailsModal(rfidCode);
-    }
 
     static openGarmentDetailsModal(rfidCode) {
         const modalContent = `
@@ -1533,43 +1551,7 @@ class Reception {
         }
     }
 
-    static simulateBulkScan() {
-        const types = ['Camisa', 'Pantalón', 'Buzo', 'Vestido', 'Chaqueta'];
-        const colors = ['Blanco', 'Negro', 'Azul', 'Rojo', 'Verde', 'Gris'];
-        const sizes = ['S', 'M', 'L', 'XL'];
-        const conditions = ['bueno', 'regular', 'delicado'];
 
-        for (let i = 0; i < 5; i++) {
-            const rfidCode = this.generateRFIDCode();
-            if (!this.scannedGarments.find(g => g.rfidCode === rfidCode)) {
-                this.scannedGarments.push({
-                    rfidCode: rfidCode,
-                    type: types[Math.floor(Math.random() * types.length)],
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    size: sizes[Math.floor(Math.random() * sizes.length)],
-                    condition: conditions[Math.floor(Math.random() * conditions.length)],
-                    notes: `Prenda escaneada automáticamente - ${new Date().toLocaleTimeString()}`
-                });
-            }
-        }
-
-        this.refreshGarmentsList();
-        app.showSuccessMessage('5 prendas simuladas agregadas');
-        
-        // Mostrar botones de acción directamente si hay prendas
-        if (this.scannedGarments.length > 0) {
-            this.showActionButtons();
-        }
-    }
-
-    static generateRFID() {
-        const rfidCode = this.generateRFIDCode();
-        const input = document.getElementById('rfid-input');
-        if (input) {
-            input.value = rfidCode;
-            input.focus();
-        }
-    }
 
     static generateRFIDCode() {
         const prefix = 'RFID';

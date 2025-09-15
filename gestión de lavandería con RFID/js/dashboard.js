@@ -21,7 +21,7 @@ class Dashboard {
             ${alerts.length > 0 ? this.renderAlerts(alerts) : ''}
 
             <!-- Estadísticas principales -->
-            <div class="grid grid-5 mb-3">
+            <div class="grid grid-4 mb-3">
                 <div class="card text-center scale-in" style="animation-delay: 0.1s;">
                     <h3 class="text-primary pulse">${stats.totalClients}</h3>
                     <p class="text-muted">Clientes Registrados</p>
@@ -36,11 +36,6 @@ class Dashboard {
                     <h3 class="text-success pulse">${stats.garmentsReady}</h3>
                     <p class="text-muted">Prendas Listas</p>
                     <small class="badge badge-success">✅ Completadas</small>
-                </div>
-                <div class="card text-center scale-in" style="animation-delay: 0.4s;">
-                    <h3 class="text-info pulse">${stats.activeGuides}</h3>
-                    <p class="text-muted">Guías Activas</p>
-                    <small class="badge badge-info">📄 Pendientes</small>
                 </div>
                 <div class="card text-center scale-in" style="animation-delay: 0.5s;">
                     <h3 class="text-secondary pulse">${stats.totalBatches}</h3>
