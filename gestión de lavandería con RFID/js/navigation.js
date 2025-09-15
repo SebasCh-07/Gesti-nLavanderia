@@ -155,6 +155,13 @@ class Navigation {
             // Actualizar URL (sin recargar)
             this.updateURL(pageName);
 
+            // Limpiar intervalos de la página anterior si es dashboard
+            if (this.currentPage === 'dashboard' && pageName !== 'dashboard') {
+                if (window.Dashboard && typeof Dashboard.clearIntervals === 'function') {
+                    Dashboard.clearIntervals();
+                }
+            }
+
             // Actualizar página actual
             this.currentPage = pageName;
             app.currentPage = pageName;

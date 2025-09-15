@@ -650,8 +650,11 @@ class Dashboard {
     }
 
     static init() {
+        // Limpiar intervalos existentes para evitar acumulación
+        this.clearIntervals();
+
         // Configurar actualización automática cada 30 segundos
-        setInterval(() => {
+        this.refreshInterval = setInterval(() => {
             if (Navigation.getCurrentPage() === 'dashboard') {
                 this.refresh();
             }
@@ -665,6 +668,18 @@ class Dashboard {
         
         // Configurar auto-refresh de estadísticas
         this.setupAutoRefresh();
+    }
+
+    static clearIntervals() {
+        // Limpiar intervalos existentes
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
+        if (this.animationInterval) {
+            clearInterval(this.animationInterval);
+            this.animationInterval = null;
+        }
     }
 
     static addInteractiveEffects() {
@@ -687,7 +702,7 @@ class Dashboard {
 
     static setupAutoRefresh() {
         // Actualizar estadísticas cada 10 segundos si el dashboard está visible
-        setInterval(() => {
+        this.animationInterval = setInterval(() => {
             if (Navigation.getCurrentPage() === 'dashboard') {
                 const statValues = document.querySelectorAll('.card.text-center h3');
                 statValues.forEach(value => {

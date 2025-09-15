@@ -995,21 +995,7 @@ class Reception {
                         <div class="form-section">
                             <h6 class="section-title">🚚 Estado de Recepción</h6>
                             <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">Estado de Llegada *</label>
-                                        <select id="batch-arrival-status" class="form-control" required>
-                                            <option value="">Seleccionar estado...</option>
-                                            <option value="limpio">Limpio y ordenado</option>
-                                            <option value="manchado">Con manchas</option>
-                                            <option value="húmedo">Húmedo</option>
-                                            <option value="arrugado">Arrugado</option>
-                                            <option value="mal-olor">Con mal olor</option>
-                                            <option value="dañado">Con daños</option>
-                                            <option value="incompleto">Lote incompleto</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label class="form-label">Condición General *</label>
@@ -1056,13 +1042,7 @@ class Reception {
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="form-label">Fecha de Entrega</label>
-                                        <input type="date" id="batch-delivery-date" class="form-control" 
-                                               min="${new Date().toISOString().split('T')[0]}">
-                                    </div>
-                                </div>
+                                
                             </div>
                         </div>
 
@@ -1105,9 +1085,9 @@ class Reception {
                             </div>
                         </div>
 
-                        <!-- Instrucciones Especiales -->
+                        <!-- Tratamientos y parámetros de lavado -->
                         <div class="form-section">
-                            <h6 class="section-title">⚠️ Instrucciones Especiales</h6>
+                            <h6 class="section-title">⚠️ Parámetros de Lavado</h6>
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -1144,11 +1124,7 @@ class Reception {
                                 <textarea id="batch-observations" class="form-control" rows="3" 
                                           placeholder="Describe el estado del lote al llegar, manchas específicas, daños, etc..."></textarea>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Instrucciones Especiales</label>
-                                <textarea id="batch-special-instructions" class="form-control" rows="2" 
-                                          placeholder="Instrucciones específicas para el procesamiento de este lote..."></textarea>
-                            </div>
+                            
                         </div>
                     </form>
                 </div>
@@ -1254,15 +1230,13 @@ class Reception {
         const batchCondition = document.getElementById('batch-condition')?.value;
         const batchService = document.getElementById('batch-service')?.value;
         const batchPriority = document.getElementById('batch-priority')?.value;
-        const batchArrivalStatus = document.getElementById('batch-arrival-status')?.value;
-        const batchDeliveryDate = document.getElementById('batch-delivery-date')?.value;
         const batchSpecialTreatment = document.getElementById('batch-special-treatment')?.value || '';
         const batchTemperature = document.getElementById('batch-temperature')?.value || 'tibia';
         const batchObservations = document.getElementById('batch-observations')?.value || '';
-        const batchSpecialInstructions = document.getElementById('batch-special-instructions')?.value || '';
+        const batchSpecialInstructions = '';
 
         // Validar campos obligatorios
-        if (!batchType || !batchColor || !batchCondition || !batchService || !batchPriority || !batchArrivalStatus) {
+        if (!batchType || !batchColor || !batchCondition || !batchService || !batchPriority) {
             app.showErrorMessage('Todos los campos marcados con * son obligatorios');
             return;
         }
@@ -1274,8 +1248,6 @@ class Reception {
             garment.condition = batchCondition;
             garment.serviceType = batchService;
             garment.priority = batchPriority;
-            garment.arrivalStatus = batchArrivalStatus;
-            garment.deliveryDate = batchDeliveryDate;
             garment.specialTreatment = batchSpecialTreatment;
             garment.temperature = batchTemperature;
             
@@ -1284,7 +1256,6 @@ class Reception {
             const newNotes = [
                 originalNotes,
                 batchObservations ? `Observaciones: ${batchObservations}` : '',
-                batchSpecialInstructions ? `Instrucciones: ${batchSpecialInstructions}` : '',
                 batchSpecialTreatment ? `Tratamiento: ${batchSpecialTreatment}` : '',
                 `Temperatura: ${batchTemperature}`,
                 `Lote procesado con C72 RFID - ${new Date().toLocaleString()}`
