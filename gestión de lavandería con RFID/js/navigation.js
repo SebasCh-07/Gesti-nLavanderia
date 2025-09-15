@@ -41,11 +41,6 @@ class Navigation {
             icon: '📋',
             module: 'History'
         },
-        reports: {
-            title: 'Reportes',
-            icon: '📈',
-            module: 'Reports'
-        },
         'rfid-simulator': {
             title: 'Simulador C72 RFID',
             icon: '🔍',

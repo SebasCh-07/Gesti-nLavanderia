@@ -534,7 +534,7 @@ class Clients {
     }
 
     static newService(clientId) {
-        Navigation.navigateTo('reception', { selectedClient: clientId });
+        Navigation.navigateTo('reception', { selectedClient: clientId, jumpToScan: true });
     }
 
     static async deleteClient(clientId) {

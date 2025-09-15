@@ -87,14 +87,7 @@ class Dashboard {
                         ${this.renderSystemInfo()}
                     </div>
 
-                    <!-- Herramientas de administración -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Herramientas de Administración</h3>
-                            <p class="card-subtitle">Gestión de datos del sistema</p>
-                        </div>
-                        ${this.renderAdminTools()}
-                    </div>
+                    
 
                     <!-- Clientes más activos -->
                     <div class="card">

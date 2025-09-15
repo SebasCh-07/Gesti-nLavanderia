@@ -55,6 +55,11 @@ class Reception {
         
         console.log('Estado final - Cliente:', this.selectedClient?.name, 'Paso:', this.currentStep, 'Prendas:', this.scannedGarments.length);
 
+        // Si viene de nuevo servicio y hay cliente, saltar al paso 2 (escaneo)
+        if (this.selectedClient && params.jumpToScan) {
+            this.currentStep = 2;
+        }
+
         return `
             <div class="page-header">
                 <h1>📥 Recepción de Prendas</h1>
