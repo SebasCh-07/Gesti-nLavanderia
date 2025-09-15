@@ -5,7 +5,8 @@
 
 class Control {
     static currentView = 'list'; // 'list', 'kanban', 'timeline'
-    static currentMode = 'garments'; // 'garments', 'batches'
+    static currentMode = 'batches'; // 'garments', 'batches'
+    static batchView = 'byBatch'; // 'byBatch', 'byClient'
     static selectedStatus = 'all';
     static searchQuery = '';
     static sortBy = 'receivedAt';
@@ -132,7 +133,10 @@ class Control {
 
     static renderCurrentView() {
         if (this.currentMode === 'batches') {
-            return this.renderBatchList();
+            return `
+                ${this.renderBatchToolbar()}
+                ${this.batchView === 'byBatch' ? this.renderBatchList() : this.renderClientBatchList()}
+            `;
         }
         
         switch (this.currentView) {
@@ -145,6 +149,27 @@ class Control {
             default:
                 return this.renderListView();
         }
+    }
+
+    // ===== Vista y acciones para "Lotes" =====
+
+    static renderBatchToolbar() {
+        return `
+            <div class="card mb-2">
+                <div class="card-header" style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <h3 class="card-title" style="margin:0;">Gestión de Lotes</h3>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn ${this.batchView === 'byBatch' ? 'btn-primary' : 'btn-secondary'}" onclick="Control.changeBatchView('byBatch')">📦 Por Lotes</button>
+                        <button class="btn ${this.batchView === 'byClient' ? 'btn-primary' : 'btn-secondary'}" onclick="Control.changeBatchView('byClient')">👥 Por Clientes</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    static changeBatchView(view) {
+        this.batchView = view;
+        this.refreshContent();
     }
 
     static renderListView() {
@@ -1242,6 +1267,24 @@ class Control {
     static addControlStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            /* Modal actualizar estado bonito */
+            .status-update-form.pretty { padding: 10px; }
+            .status-update-form .form-label { font-weight: 600; color: #2d3748; margin-bottom: 6px; display:block; }
+            .status-summary {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+                padding: 12px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-bottom: 14px;
+            }
+            .status-summary .label { font-size: 12px; color: #718096; }
+            .status-summary .value { font-weight: 600; color: #2d3748; }
+            .segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .segmented label { display:flex; align-items:center; gap:8px; border: 1px solid #e2e8f0; padding:10px; border-radius:6px; cursor:pointer; background:#fff; }
+            .segmented input { accent-color: #667eea; }
             .control-toolbar {
                 display: flex;
                 justify-content: space-between;
@@ -1863,6 +1906,146 @@ class Control {
         `;
     }
 
+    static renderClientBatchList() {
+        const batches = this.getFilteredBatches();
+        const clientsMap = new Map();
+        batches.forEach(batch => {
+            if (!clientsMap.has(batch.clientId)) clientsMap.set(batch.clientId, []);
+            clientsMap.get(batch.clientId).push(batch);
+        });
+
+        const clientEntries = Array.from(clientsMap.entries());
+
+        if (clientEntries.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-icon">👥</div>
+                    <h3>No hay clientes con lotes</h3>
+                    <p>Cuando asignes lotes a clientes, aparecerán aquí agrupados.</p>
+                    <button class="btn btn-primary" onclick="Navigation.loadPage('reception')">➕ Crear Lote</button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Clientes con Lotes (${clientEntries.length})</h3>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th># Lotes</th>
+                                <th>Prendas</th>
+                                <th>Estados</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${clientEntries.map(([clientId, clientBatches]) => this.renderClientBatchRow(clientId, clientBatches)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    static renderClientBatchRow(clientId, clientBatches) {
+        const client = Storage.getClientById(clientId) || { name: 'Cliente no encontrado' };
+        const totalPrendas = clientBatches.reduce((acc, b) => acc + (b.totalGarments || 0), 0);
+        const statusCounts = clientBatches.reduce((acc, b) => {
+            const s = b.status || 'desconocido';
+            acc[s] = (acc[s] || 0) + 1;
+            return acc;
+        }, {});
+        const statusText = Object.entries(statusCounts).map(([k,v]) => `${this.getStatusLabel(k)}: ${v}`).join(' • ');
+
+        return `
+            <tr>
+                <td>
+                    <div class="client-info">
+                        <strong>${client.name}</strong>
+                        ${client.cedula ? `<div class="text-muted" style="font-size:12px;">${client.cedula}</div>` : ''}
+                    </div>
+                </td>
+                <td><span class="badge badge-secondary">${clientBatches.length}</span></td>
+                <td><span class="badge badge-info">${totalPrendas}</span></td>
+                <td>${statusText || '—'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-info" onclick="Control.viewClientBatches(${clientId})">👁️ Ver</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    static viewClientBatches(clientId) {
+        const client = Storage.getClientById(clientId);
+        const batches = Storage.getBatchesByClient(clientId) || [];
+        if (!client) {
+            app.showErrorMessage('Cliente no encontrado');
+            return;
+        }
+
+        const content = `
+            <div class="client-batches-modal">
+                <div class="mb-2"><strong>Cliente:</strong> ${client.name}${client.cedula ? ` • ${client.cedula}` : ''}</div>
+                ${batches.length === 0 ? '<div class="text-muted">Sin lotes</div>' : ''}
+                ${batches.length > 0 ? `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>Nombre</th>
+                                <th>Prendas</th>
+                                <th>Estado</th>
+                                <th>Creado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${batches.map(b => `
+                                <tr>
+                                    <td><strong>${b.batchNumber}</strong></td>
+                                    <td>${b.name || '—'}</td>
+                                    <td><span class="badge badge-info">${b.totalGarments || 0}</span></td>
+                                    <td>${Control.getStatusLabel(b.status)}</td>
+                                    <td>${new Date(b.createdAt).toLocaleDateString()}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-info" onclick="Control.viewBatchDetails(${b.id})">👁️</button>
+                                            <button class="btn btn-sm btn-primary" onclick="Control.updateBatchStatus(${b.id})">✏️</button>
+                                            <button class="btn btn-sm btn-danger" onclick="Control.deleteBatch(${b.id})">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        const modal = app.showModal('Lotes del Cliente', content);
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = `<button class="btn btn-secondary" onclick="app.closeModal('dynamic-modal')">Cerrar</button>`;
+    }
+
+    static deleteBatch(batchId) {
+        if (!confirm('¿Eliminar este lote? Esta acción no se puede deshacer.')) return;
+        if (Storage.deleteBatch(batchId)) {
+            app.showSuccessMessage('Lote eliminado');
+            app.closeModal('dynamic-modal');
+            this.refreshContent();
+        } else {
+            app.showErrorMessage('No se pudo eliminar el lote');
+        }
+    }
     static renderBatchRow(batch) {
         const client = Storage.getClientById(batch.clientId);
         const progress = Storage.getBatchProgress(batch.id);
@@ -2025,18 +2208,34 @@ class Control {
         if (!batch) return;
 
         const content = `
-            <div class="status-update-form">
-                <div class="form-group">
-                    <label>Nuevo Estado:</label>
-                    <select id="new-batch-status" class="form-control">
-                        <option value="recibido" ${batch.status === 'recibido' ? 'selected' : ''}>Recibido</option>
-                        <option value="en_proceso" ${batch.status === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
-                        <option value="listo" ${batch.status === 'listo' ? 'selected' : ''}>Listo</option>
-                        <option value="entregado" ${batch.status === 'entregado' ? 'selected' : ''}>Entregado</option>
-                    </select>
+            <div class="status-update-form pretty">
+                <div class="status-summary">
+                    <div>
+                        <div class="label">Lote</div>
+                        <div class="value">${batch.batchNumber}</div>
+                    </div>
+                    <div>
+                        <div class="label">Estado actual</div>
+                        <div class="value"><span class="status-badge ${batch.status}">${this.getStatusLabel(batch.status)}</span></div>
+                    </div>
+                    <div>
+                        <div class="label">Prendas</div>
+                        <div class="value">${batch.totalGarments} / ${batch.expectedGarments || '?'}</div>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label>Notas:</label>
+                    <label class="form-label">Nuevo Estado</label>
+                    <div class="segmented">
+                        <label><input type="radio" name="status" value="recibido" ${batch.status === 'recibido' ? 'checked' : ''}> <span>Recibido</span></label>
+                        <label><input type="radio" name="status" value="en_proceso" ${batch.status === 'en_proceso' ? 'checked' : ''}> <span>En Proceso</span></label>
+                        <label><input type="radio" name="status" value="listo" ${batch.status === 'listo' ? 'checked' : ''}> <span>Listo</span></label>
+                        <label><input type="radio" name="status" value="entregado" ${batch.status === 'entregado' ? 'checked' : ''}> <span>Entregado</span></label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notas</label>
                     <textarea id="batch-update-notes" class="form-control" rows="3" placeholder="Observaciones sobre el cambio de estado..."></textarea>
                 </div>
             </div>
@@ -2052,7 +2251,9 @@ class Control {
     }
 
     static confirmBatchStatusUpdate(batchId) {
-        const newStatus = document.getElementById('new-batch-status').value;
+        const radios = Array.from(document.querySelectorAll('input[name="status"]'));
+        const selected = radios.find(r => r.checked);
+        const newStatus = selected ? selected.value : null;
         const notes = document.getElementById('batch-update-notes').value;
         
         const batch = Storage.getBatchById(batchId);

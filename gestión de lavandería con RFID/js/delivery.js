@@ -4,6 +4,7 @@
  */
 
 class Delivery {
+    static currentTab = 'ready'; // 'ready' | 'delivered'
     static currentStep = 1; // 1: Cliente, 2: Escaneo, 3: Validación, 4: Confirmación
     static selectedClient = null;
     static scannedGarments = [];
@@ -22,35 +23,19 @@ class Delivery {
 
         return `
             <div class="page-header">
-                <h1>📤 Entrega de Prendas</h1>
-                <p>Sistema de entrega con validación automática</p>
+                <h1>📤 Entrega</h1>
+                <p>Gestión de lotes listos y entregados</p>
             </div>
 
-            <!-- Indicador de pasos -->
-            <div class="steps-indicator card mb-2">
-                <div class="steps">
-                    <div class="step ${this.currentStep >= 1 ? 'active' : ''} ${this.currentStep > 1 ? 'completed' : ''}">
-                        <div class="step-number">1</div>
-                        <div class="step-label">Cliente</div>
-                    </div>
-                    <div class="step ${this.currentStep >= 2 ? 'active' : ''} ${this.currentStep > 2 ? 'completed' : ''}">
-                        <div class="step-number">2</div>
-                        <div class="step-label">Escaneo</div>
-                    </div>
-                    <div class="step ${this.currentStep >= 3 ? 'active' : ''} ${this.currentStep > 3 ? 'completed' : ''}">
-                        <div class="step-number">3</div>
-                        <div class="step-label">Validación</div>
-                    </div>
-                    <div class="step ${this.currentStep >= 4 ? 'active' : ''}">
-                        <div class="step-number">4</div>
-                        <div class="step-label">Confirmación</div>
-                    </div>
+            <div class="card mb-2">
+                <div class="tabs">
+                    <button class="tab ${this.currentTab === 'ready' ? 'active' : ''}" onclick="Delivery.switchTab('ready')">Listos para Entrega</button>
+                    <button class="tab ${this.currentTab === 'delivered' ? 'active' : ''}" onclick="Delivery.switchTab('delivered')">Entregados</button>
                 </div>
             </div>
 
-            <!-- Contenido del paso actual -->
             <div id="delivery-content">
-                ${this.renderCurrentStep()}
+                ${this.currentTab === 'ready' ? this.renderReadyBatches() : this.renderDeliveredBatches()}
             </div>
         `;
     }
@@ -68,6 +53,154 @@ class Delivery {
             default:
                 return this.renderClientSelection();
         }
+    }
+
+    static switchTab(tab) {
+        this.currentTab = tab;
+        this.refreshContent();
+    }
+
+    // ===== Listos para entrega (por lotes) =====
+    static renderReadyBatches() {
+        const ready = Storage.getBatches().filter(b => b.status === 'listo');
+        if (ready.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-icon">📦</div>
+                    <h4>No hay lotes listos</h4>
+                    <p>Cuando haya lotes en estado "Listo" aparecerán aquí.</p>
+                </div>
+            `;
+        }
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Lotes Listos (${ready.length})</h3>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>Cliente</th>
+                                <th>Prendas</th>
+                                <th>Prioridad</th>
+                                <th>Creado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ready.map(b => this.renderReadyRow(b)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    static renderReadyRow(batch) {
+        const client = Storage.getClientById(batch.clientId);
+        return `
+            <tr>
+                <td><strong>${batch.batchNumber}</strong></td>
+                <td>${client?.name || '—'}</td>
+                <td>${batch.totalGarments} / ${batch.expectedGarments || '?'}</td>
+                <td><span class="priority-badge ${batch.priority}">${Control.getPriorityLabel(batch.priority)}</span></td>
+                <td>${new Date(batch.createdAt).toLocaleDateString('es-ES')}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="Delivery.openReadyBatch(${batch.id})">👁️</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    static openReadyBatch(batchId) {
+        const batch = Storage.getBatchById(batchId);
+        const client = batch ? Storage.getClientById(batch.clientId) : null;
+        if (!batch) { app.showErrorMessage('Lote no encontrado'); return; }
+        const content = `
+            <div class="batch-quick-modal">
+                <div class="mb-2"><strong>${batch.batchNumber}</strong> • ${batch.name || ''}</div>
+                <div class="text-muted mb-2">Cliente: ${client?.name || '—'}</div>
+                <div class="mb-2">Prendas: ${batch.totalGarments} / ${batch.expectedGarments || '?'}</div>
+                <div class="mb-2">Estado: <span class="status-badge listo">Listo</span></div>
+            </div>
+        `;
+        const modal = app.showModal('Listo para Entrega', content);
+        const footer = modal.querySelector('.modal-footer');
+        footer.innerHTML = `
+            <button class="btn btn-secondary" onclick="app.closeModal('dynamic-modal')">Cerrar</button>
+            <button class="btn btn-success" onclick="Delivery.markAsDelivered(${batch.id})">✅ Entregado</button>
+        `;
+    }
+
+    static markAsDelivered(batchId) {
+        const batch = Storage.getBatchById(batchId);
+        if (!batch) return;
+        Storage.updateBatch(batchId, { status: 'entregado', deliveredAt: new Date().toISOString() });
+        // Propagar a prendas
+        const garments = Storage.getGarments();
+        (batch.garmentIds || []).forEach(id => {
+            const idx = garments.findIndex(g => g.id === id);
+            if (idx !== -1) garments[idx].status = 'entregado';
+        });
+        Storage.setGarments(garments);
+        app.showSuccessMessage(`Lote ${batch.batchNumber} marcado como entregado`);
+        app.closeModal('dynamic-modal');
+        this.refreshContent();
+    }
+
+    // ===== Entregados (con filtro por cliente) =====
+    static renderDeliveredBatches() {
+        const all = Storage.getBatches().filter(b => b.status === 'entregado');
+        const clients = Storage.getClients();
+        return `
+            <div class="card">
+                <div class="card-header" style="display:flex; justify-content: space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <h3 class="card-title">Lotes Entregados (${all.length})</h3>
+                    <div class="filter-group">
+                        <select id="delivered-client-filter" class="form-control" onchange="Delivery.refreshContent()">
+                            <option value="">Todos los clientes</option>
+                            ${clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Lote</th>
+                                <th>Cliente</th>
+                                <th>Prendas</th>
+                                <th>Entregado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.getDeliveredFiltered(all).map(b => this.renderDeliveredRow(b)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    static getDeliveredFiltered(all) {
+        const sel = document.getElementById('delivered-client-filter');
+        const clientId = sel ? parseInt(sel.value) : NaN;
+        if (!sel || !sel.value) return all;
+        return all.filter(b => b.clientId === clientId);
+    }
+
+    static renderDeliveredRow(batch) {
+        const client = Storage.getClientById(batch.clientId);
+        return `
+            <tr>
+                <td><strong>${batch.batchNumber}</strong></td>
+                <td>${client?.name || '—'}</td>
+                <td>${batch.totalGarments}</td>
+                <td>${batch.deliveredAt ? new Date(batch.deliveredAt).toLocaleString('es-ES') : '-'}</td>
+            </tr>
+        `;
     }
 
     static renderClientSelection() {
@@ -351,13 +484,16 @@ class Delivery {
     static refreshContent() {
         const content = document.getElementById('delivery-content');
         if (content) {
-            content.innerHTML = this.renderCurrentStep();
+            content.innerHTML = this.currentTab === 'ready' ? this.renderReadyBatches() : this.renderDeliveredBatches();
         }
     }
 
     static addDeliveryStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            .tabs { display:flex; gap:8px; border-bottom:1px solid #e2e8f0; padding: 4px 8px; }
+            .tab { padding:8px 12px; border:none; background:transparent; cursor:pointer; color:#4a5568; border-bottom:2px solid transparent; }
+            .tab.active { color:#2d3748; border-color:#667eea; font-weight:600; }
             .steps-indicator {
                 padding: 20px;
                 background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);

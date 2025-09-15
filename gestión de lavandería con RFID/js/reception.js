@@ -2851,6 +2851,17 @@ class Reception {
                 padding: 20px;
                 border: 1px solid #e2e8f0;
             }
+
+            /* === Confirmación: lista de prendas con scroll === */
+            .confirmation-content .card .table-container {
+                max-height: 380px;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+            .confirmation-content .card .table {
+                width: 100%;
+                border-collapse: collapse;
+            }
             
             .batch-preview h6 {
                 color: #2d3748;
