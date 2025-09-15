@@ -712,24 +712,13 @@ class Dashboard {
     static addDashboardStyles() {
         const style = document.createElement('style');
         style.textContent = `
-            .status-bars .status-item {
-                margin-bottom: 15px;
-            }
-            .status-info {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-            }
-            .progress-bar {
-                height: 8px;
-                background-color: #e2e8f0;
-                border-radius: 4px;
-                overflow: hidden;
-            }
-            .progress-fill {
-                height: 100%;
-                transition: width 0.3s ease;
-            }
+            .status-bars { padding: 10px 12px; }
+            .status-bars .status-item { margin-bottom: 16px; }
+            .status-info { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 10px; }
+            .status-info span:first-child { color: #2d3748; font-weight: 600; }
+            .status-info .badge { vertical-align: middle; }
+            .progress-bar { height: 10px; background-color: #edf2f7; border-radius: 6px; overflow: hidden; }
+            .progress-fill { height: 100%; transition: width 0.3s ease; border-radius: 6px; }
             .activity-list .activity-item {
                 display: flex;
                 padding: 12px 0;
