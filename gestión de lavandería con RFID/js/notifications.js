@@ -34,6 +34,17 @@ class Notifications {
             </div>
 
             <div class="notifications-center">
+                <!-- Configuración de Mensajes Automáticos -->
+                <div class="card mb-2">
+                    <div class="card-header">
+                        <h3 class="card-title">⚙️ Configuración de Mensajes Automáticos</h3>
+                        <p class="card-subtitle">Define los mensajes enviados automáticamente</p>
+                    </div>
+                    <div class="auto-config">
+                        ${this.renderAutoConfig()}
+                    </div>
+                </div>
+
                 <!-- Panel de Envío -->
                 <div class="card mb-2">
                     <div class="card-header">
@@ -42,17 +53,6 @@ class Notifications {
                     </div>
                     <div class="notification-sender">
                         ${this.renderNotificationForm()}
-                    </div>
-                </div>
-
-                <!-- Plantillas Predefinidas -->
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <h3 class="card-title">📋 Plantillas Rápidas</h3>
-                        <p class="card-subtitle">Enviar notificaciones usando plantillas predefinidas</p>
-                    </div>
-                    <div class="templates-section">
-                        ${this.renderTemplates()}
                     </div>
                 </div>
 
@@ -68,6 +68,108 @@ class Notifications {
                 </div>
             </div>
         `;
+    }
+
+    // ===== Configuración Automática =====
+    static ensureDefaultConfig() {
+        const settings = Storage.getSettings() || {};
+        if (!settings.notificationsConfig) {
+            settings.notificationsConfig = {
+                internalNewBatch: {
+                    toEmail: 'control@lavanderia.com',
+                    subject: 'Nuevo lote registrado: {batch_number}',
+                    body: 'Se ha recibido un nuevo lote para proceso. Cliente: {client_name}. Prendas: {garment_count}.'
+                },
+                clientBatchReady: {
+                    subject: 'Su lote {batch_number} está listo',
+                    body: 'Hola {client_name}, su lote con {garment_count} prenda(s) está listo para recoger en {branch_name}.'
+                }
+            };
+            Storage.setData(Storage.KEYS.SETTINGS, settings);
+        }
+    }
+
+    static renderAutoConfig() {
+        this.ensureDefaultConfig();
+        const cfg = Storage.getSettings().notificationsConfig;
+        return `
+            <div class="auto-config-grid">
+                <div class="card inner mb-2">
+                    <div class="card-header">
+                        <h3 class="card-title">🏭 Control Interno: Nuevo Lote</h3>
+                        <p class="card-subtitle">Se envía a un correo general</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Correo destino (general)</label>
+                            <input id="cfg-internal-email" class="form-control" type="email" placeholder="control@empresa.com" value="${cfg.internalNewBatch.toEmail || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Asunto</label>
+                            <input id="cfg-internal-subject" class="form-control" type="text" value="${cfg.internalNewBatch.subject || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mensaje</label>
+                            <textarea id="cfg-internal-body" class="form-control" rows="3">${cfg.internalNewBatch.body || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Variables disponibles</label>
+                            <div class="variables-help">
+                                <span class="variable-tag">{batch_number}</span>
+                                <span class="variable-tag">{client_name}</span>
+                                <span class="variable-tag">{garment_count}</span>
+                                <span class="variable-tag">{branch_name}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card inner mb-2">
+                    <div class="card-header">
+                        <h3 class="card-title">👤 Cliente: Lote Listo</h3>
+                        <p class="card-subtitle">La plataforma detecta automáticamente el cliente</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Asunto</label>
+                            <input id="cfg-client-subject" class="form-control" type="text" value="${cfg.clientBatchReady.subject || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mensaje</label>
+                            <textarea id="cfg-client-body" class="form-control" rows="3">${cfg.clientBatchReady.body || ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Variables disponibles</label>
+                            <div class="variables-help">
+                                <span class="variable-tag">{batch_number}</span>
+                                <span class="variable-tag">{client_name}</span>
+                                <span class="variable-tag">{garment_count}</span>
+                                <span class="variable-tag">{branch_name}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions" style="text-align:right;">
+                <button class="btn btn-primary" onclick="Notifications.saveAutoConfig()">💾 Guardar Configuración</button>
+            </div>
+        `;
+    }
+
+    static saveAutoConfig() {
+        const settings = Storage.getSettings() || {};
+        settings.notificationsConfig = settings.notificationsConfig || {};
+        settings.notificationsConfig.internalNewBatch = {
+            toEmail: document.getElementById('cfg-internal-email')?.value || '',
+            subject: document.getElementById('cfg-internal-subject')?.value || '',
+            body: document.getElementById('cfg-internal-body')?.value || ''
+        };
+        settings.notificationsConfig.clientBatchReady = {
+            subject: document.getElementById('cfg-client-subject')?.value || '',
+            body: document.getElementById('cfg-client-body')?.value || ''
+        };
+        Storage.setData(Storage.KEYS.SETTINGS, settings);
+        app.showSuccessMessage('Configuración de mensajes automáticos guardada');
     }
 
     static renderNotificationForm() {
@@ -690,6 +792,7 @@ class Notifications {
     // Métodos de inicialización
     static init() {
         this.addNotificationStyles();
+        this.ensureDefaultConfig();
     }
 
     static addNotificationStyles() {
