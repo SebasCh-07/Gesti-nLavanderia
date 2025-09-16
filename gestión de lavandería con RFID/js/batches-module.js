@@ -146,6 +146,10 @@ class Batches {
                                                 <option value="20">20 prendas</option>
                                                 <option value="25">25 prendas</option>
                                                 <option value="30">30 prendas</option>
+                                                <option value="40">40 prendas</option>
+                                                <option value="50">50 prendas</option>
+                                                <option value="75">75 prendas</option>
+                                                <option value="100">100 prendas</option>
                                             </select>
                                         </div>
                                     </div>
