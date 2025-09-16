@@ -835,6 +835,10 @@ class BatchManager {
         
         if (updatedBatch) {
             app.showSuccessMessage(`Lote ${updatedBatch.batchNumber} marcado como completado`);
+            // Notificación flotante simulando envío de correo al cliente
+            const client = Storage.getClientById(updatedBatch.clientId);
+            const clientName = client?.name || 'cliente';
+            app.showNotification(`Correo de lote listo enviado a ${clientName}`, 'info');
             this.loadBatches();
         } else {
             app.showErrorMessage('Error al completar el lote');

@@ -73,14 +73,6 @@ class Control {
                                placeholder="Buscar por RFID, cliente..."
                                value="${this.searchQuery}"
                                onkeyup="Control.search(this.value)">
-                        
-                        <button class="btn btn-info" onclick="Control.openBulkActions()">
-                            ⚡ Acciones Masivas
-                        </button>
-                        
-                        <button class="btn btn-success" onclick="Control.scanRFID()">
-                            🔍 Escanear RFID
-                        </button>
                     </div>
                 </div>
             </div>
@@ -615,6 +607,19 @@ class Control {
             operator: app.currentUser?.username || 'sistema',
             details: `Estado cambiado de ${this.getStatusText(oldStatus)} a ${this.getStatusText(newStatus)}${notes ? ` - ${notes}` : ''}`
         });
+
+        // Si la prenda pertenece a un lote, verificar si todas están listas
+        if (newStatus === 'listo' && garment.batchId) {
+            const batch = Storage.getBatchById(garment.batchId);
+            if (batch) {
+                const garments = Storage.getGarments().filter(g => g.batchId === batch.id);
+                const allReady = garments.length > 0 && garments.every(g => g.status === 'listo');
+                if (allReady && batch.status !== 'listo') {
+                    Storage.updateBatch(batch.id, { status: 'listo', processedAt: new Date().toISOString() });
+                    app.showSuccessMessage('Lote actualizado a Listo, Correo enviado al cliente');
+                }
+            }
+        }
 
         app.closeModal('dynamic-modal');
         app.showSuccessMessage(`Estado actualizado: ${garment.rfidCode} → ${this.getStatusText(newStatus)}`);
@@ -2288,12 +2293,40 @@ class Control {
         }
 
         app.closeModal('dynamic-modal');
-        app.showSuccessMessage(`Estado del lote ${batch.batchNumber} actualizado a: ${this.getStatusLabel(newStatus)}`);
+        const statusLabel = this.getStatusLabel(newStatus);
+        const successMsg = newStatus === 'listo'
+            ? 'Lote actualizado a Listo, Correo enviado al cliente'
+            : `Estado del lote ${batch.batchNumber} actualizado a: ${statusLabel}`;
+        app.showSuccessMessage(successMsg);
         this.refreshContent();
     }
 
     static startBatchProcessing(batchId) {
-        this.confirmBatchStatusUpdate(batchId);
+        const batch = Storage.getBatchById(batchId);
+        if (!batch) {
+            app.showErrorMessage('Lote no encontrado');
+            return;
+        }
+
+        // Actualizar estado del lote a "en_proceso"
+        Storage.updateBatch(batchId, {
+            status: 'en_proceso',
+            processedAt: new Date().toISOString()
+        });
+
+        // Propagar estado a prendas del lote
+        const garments = Storage.getGarments();
+        batch.garmentIds.forEach(garmentId => {
+            const garmentIndex = garments.findIndex(g => g.id === garmentId);
+            if (garmentIndex !== -1) {
+                garments[garmentIndex].status = 'en_proceso';
+                garments[garmentIndex].processedAt = new Date().toISOString();
+            }
+        });
+        Storage.setGarments(garments);
+
+        app.showSuccessMessage(`Lote ${batch.batchNumber} iniciado: En Proceso`);
+        this.refreshContent();
     }
 
     static getStatusLabel(status) {

@@ -1647,6 +1647,9 @@ class Reception {
                 });
 
                 console.log('✅ Lote creado:', batch);
+
+                // Notificación flotante simulando envío de correo al área de lavado/control interno
+                app.showNotification('Correo de nuevo lote enviado a control interno', 'info');
             }
 
             // Actualizar contador de servicios del cliente
