@@ -1634,7 +1634,7 @@ class Reception {
             if (this.scannedGarments.length > 1) {
                 batch = Storage.createBatch({
                     clientId: this.selectedClient.id,
-                    branchId: this.selectedClient.branchId || 1,
+                    branchId: app.getCurrentBranchId() || this.selectedClient.branchId || 1,
                     name: `Lote de ${this.selectedClient.name}`,
                     description: `Lote de ${this.scannedGarments.length} prendas - ${serviceType}`,
                     garmentIds: garmentIds,

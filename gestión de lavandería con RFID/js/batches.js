@@ -712,7 +712,7 @@ class BatchManager {
 
         const batchData = {
             clientId: parseInt(clientId),
-            branchId: app.auth.getCurrentUser().branchId,
+            branchId: app.getCurrentBranchId() || app.auth.getCurrentUser().branchId,
             name: name || `Lote de ${Storage.getClientById(clientId).name}`,
             description: description,
             expectedGarments: expectedGarments,

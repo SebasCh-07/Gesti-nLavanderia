@@ -113,7 +113,12 @@ class LaundryApp {
         const loginScreen = document.getElementById('login-screen');
         const mainScreen = document.getElementById('main-screen');
         
-        if (loginScreen) loginScreen.style.display = 'flex';
+        if (loginScreen) {
+            // Restablecer estilos por si quedaron animaciones previas
+            loginScreen.style.display = 'flex';
+            loginScreen.style.transform = '';
+            loginScreen.style.opacity = '';
+        }
         if (mainScreen) mainScreen.classList.remove('active');
     }
 
@@ -404,6 +409,14 @@ class LaundryApp {
                 }
             });
         }
+
+        // Poblar sucursales en login
+        const branchSelect = document.getElementById('login-branch');
+        if (branchSelect) {
+            const branches = Storage.getBranches();
+            branchSelect.innerHTML = '<option value="">Seleccione una sucursal...</option>' +
+                branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+        }
     }
 
     async handleLogin(event) {
@@ -411,6 +424,7 @@ class LaundryApp {
         
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        const loginBranch = document.getElementById('login-branch')?.value;
         const errorDiv = document.getElementById('login-error');
         const loginButton = document.getElementById('login-button');
         const loginText = document.getElementById('login-text');
@@ -425,7 +439,17 @@ class LaundryApp {
             const result = await this.auth.login(username, password);
             
             if (result.success) {
+                // Validar sucursal seleccionada
+                const selectedBranchId = parseInt(loginBranch);
+                const selectedBranch = Storage.getBranchById(selectedBranchId);
+                if (!selectedBranchId || !selectedBranch) {
+                    throw new Error('Seleccione una sucursal válida');
+                }
+
                 this.currentUser = result.user;
+                // Guardar sucursal activa de sesión
+                this.currentBranchId = selectedBranchId;
+                sessionStorage.setItem('current_branch_id', String(selectedBranchId));
                 this.showSuccessMessage(result.message);
                 
                 // Animar transición mejorada
@@ -467,6 +491,10 @@ class LaundryApp {
             this.currentUser = null;
             console.log('✅ Auth logout completado');
             
+            // Limpiar sucursal activa de la sesión
+            sessionStorage.removeItem('current_branch_id');
+            this.currentBranchId = null;
+
             this.showSuccessMessage('Sesión cerrada correctamente');
             console.log('✅ Mensaje mostrado');
             
@@ -559,7 +587,13 @@ class LaundryApp {
     }
 
     getCurrentBranchId() {
-        return this.currentBranchId || (this.currentUser ? this.currentUser.branchId : null);
+        if (this.currentBranchId) return this.currentBranchId;
+        const stored = sessionStorage.getItem('current_branch_id');
+        if (stored) {
+            this.currentBranchId = parseInt(stored);
+            return this.currentBranchId;
+        }
+        return this.currentUser ? this.currentUser.branchId : null;
     }
 
 }

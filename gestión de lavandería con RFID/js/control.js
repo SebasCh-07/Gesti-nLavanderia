@@ -29,10 +29,6 @@ class Control {
             <div class="control-toolbar card mb-2">
                 <div class="toolbar-section">
                     <div class="mode-toggles">
-                        <button class="btn ${this.currentMode === 'garments' ? 'btn-primary' : 'btn-secondary'}" 
-                                onclick="Control.changeMode('garments')">
-                            👕 Prendas
-                        </button>
                         <button class="btn ${this.currentMode === 'batches' ? 'btn-primary' : 'btn-secondary'}" 
                                 onclick="Control.changeMode('batches')">
                             📦 Lotes
@@ -59,6 +55,17 @@ class Control {
                 
                 <div class="toolbar-section">
                     <div class="filters">
+                        <select id="control-branch-filter" class="form-control" onchange="Control.refreshContent()">
+                            ${(() => {
+                                const branches = Storage.getBranches();
+                                const active = app.getCurrentBranchId();
+                                const options = [
+                                    `<option value="session">Sucursal actual (${Storage.getBranchById(active)?.name || '—'})</option>`,
+                                    '<option value="all">Todas las sucursales</option>'
+                                ].concat(branches.map(b => `<option value="${b.id}">${b.name}</option>`));
+                                return options.join('');
+                            })()}
+                        </select>
                         <select id="status-filter" class="form-control" onchange="Control.filterByStatus(this.value)">
                             <option value="all">Todos los estados</option>
                             <option value="recibido">Recibido</option>
@@ -2099,6 +2106,7 @@ class Control {
                     <div class="date-info">
                         <div class="date">${new Date(batch.createdAt).toLocaleDateString('es-ES')}</div>
                         <div class="days">${daysInSystem} días</div>
+                        <div class="branch">${(Storage.getBranchById(batch.branchId)?.name) || '—'}</div>
                     </div>
                 </td>
                 <td>
@@ -2122,6 +2130,17 @@ class Control {
 
     static getFilteredBatches() {
         let batches = Storage.getBatches();
+        // Filtrar por sucursal si hay sucursal activa seleccionada (sin roles)
+        const activeBranchId = app.getCurrentBranchId();
+        const branchFilter = document.getElementById('control-branch-filter')?.value || 'session';
+        if (branchFilter === 'session' && activeBranchId) {
+            batches = batches.filter(b => b.branchId === activeBranchId);
+        } else if (branchFilter && branchFilter !== 'all') {
+            const branchId = parseInt(branchFilter);
+            if (!isNaN(branchId)) {
+                batches = batches.filter(b => b.branchId === branchId);
+            }
+        }
         
         if (this.selectedStatus !== 'all') {
             batches = batches.filter(batch => batch.status === this.selectedStatus);
@@ -2167,6 +2186,10 @@ class Control {
                     <div class="info-item">
                         <label>Cliente:</label>
                         <span>${client?.name || 'No encontrado'}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Sucursal:</label>
+                        <span>${Storage.getBranchById(batch.branchId)?.name || '—'}</span>
                     </div>
                     <div class="info-item">
                         <label>Estado:</label>
