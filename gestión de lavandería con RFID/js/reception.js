@@ -12,6 +12,19 @@ class Reception {
     static async render() {
         const params = Navigation.getPageParams('reception');
         console.log('Parámetros recibidos en reception:', params);
+
+        // Priorizar SIEMPRE el cliente recibido por parámetros
+        if (params.selectedClient) {
+            const paramClientId = parseInt(params.selectedClient);
+            const clientFromParams = Storage.getClientById(paramClientId);
+            if (clientFromParams) {
+                this.selectedClient = clientFromParams;
+                sessionStorage.setItem('reception_selected_client_id', clientFromParams.id.toString());
+                console.log('Cliente establecido desde parámetros:', clientFromParams.name, 'ID:', clientFromParams.id);
+            } else {
+                console.warn('Cliente por parámetros no encontrado:', params.selectedClient);
+            }
+        }
         
         // Restaurar estado desde sessionStorage si no hay cliente seleccionado
         if (!this.selectedClient) {
@@ -34,22 +47,12 @@ class Reception {
             }
         }
         
-        // Establecer cliente si viene como parámetro (solo si no hay cliente ya seleccionado)
-        if (params.selectedClient && !this.selectedClient) {
-            this.selectedClient = Storage.getClientById(params.selectedClient);
-            console.log('Cliente seleccionado desde parámetros:', this.selectedClient?.name, 'ID:', params.selectedClient);
-            
-            // Guardar en sessionStorage
-            sessionStorage.setItem('reception_selected_client_id', this.selectedClient.id.toString());
-            
-            // Si no hay prendas escaneadas, ir al paso 2
-            if (this.scannedGarments.length === 0) {
-                this.currentStep = 2;
-                console.log('Navegando al paso 2 - Registro de prendas');
-            }
-        } else if (!params.selectedClient && !this.selectedClient) {
+        // Si no hay parámetros y no hay cliente, solo informar
+        if (!params.selectedClient && !this.selectedClient) {
             console.log('No hay parámetros de cliente seleccionado');
-        } else {
+        }
+        
+        if (this.selectedClient) {
             console.log('Cliente ya seleccionado:', this.selectedClient?.name);
         }
         
